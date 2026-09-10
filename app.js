@@ -23,9 +23,48 @@ const BENCH = [
 ];
 
 const PITCHERS = [
-  { name: "김도윤", role: "선발", handedness: "우완", stuff: 80, control: 77, stamina: 91 },
-  { name: "한도윤", role: "셋업맨", handedness: "우완", stuff: 78, control: 72, stamina: 64 },
-  { name: "류시원", role: "마무리", handedness: "좌완", stuff: 86, control: 76, stamina: 58 },
+  {
+    name: "김도윤",
+    role: "선발",
+    handedness: "우완",
+    stuff: 80,
+    control: 77,
+    stamina: 91,
+    trait: "낮게 떨어지는 포크볼로 땅볼과 헛스윙을 함께 노립니다.",
+    pitches: [
+      { name: "포크볼", rating: 85, type: "breaking" },
+      { name: "직구", rating: 82, type: "fastball" },
+      { name: "슬라이더", rating: 77, type: "breaking" },
+    ],
+  },
+  {
+    name: "한도윤",
+    role: "셋업맨",
+    handedness: "우완",
+    stuff: 82,
+    control: 72,
+    stamina: 64,
+    trait: "우타자 바깥쪽 슬라이더가 강합니다. 짧은 이닝에 구위가 올라갑니다.",
+    pitches: [
+      { name: "슬라이더", rating: 87, type: "breaking" },
+      { name: "투심", rating: 81, type: "fastball" },
+      { name: "체인지업", rating: 75, type: "offspeed" },
+    ],
+  },
+  {
+    name: "류시원",
+    role: "마무리",
+    handedness: "좌완",
+    stuff: 88,
+    control: 76,
+    stamina: 58,
+    trait: "강한 직구로 카운트를 잡고 포크볼을 결정구로 사용합니다.",
+    pitches: [
+      { name: "직구", rating: 92, type: "fastball" },
+      { name: "포크볼", rating: 87, type: "breaking" },
+      { name: "커브", rating: 78, type: "breaking" },
+    ],
+  },
 ];
 
 const OPPONENT_BATTERS = [
@@ -35,14 +74,55 @@ const OPPONENT_BATTERS = [
   { name: "조민석", position: "포수", handedness: "좌타", contact: 67, power: 72 },
 ];
 
-const OPPONENT_PITCHER = {
-  name: "윤태성",
-  role: "선발",
-  handedness: "우완",
-  stuff: 78,
-  control: 72,
-  stamina: 81,
-};
+const OPPONENT_PITCHERS = [
+  {
+    name: "윤태성",
+    role: "선발",
+    handedness: "우완",
+    stuff: 80,
+    control: 78,
+    stamina: 84,
+    trait: "투심과 체인지업의 높이를 바꾸며 땅볼을 유도하는 제구형 선발입니다.",
+    counterOptions: ["patient", "smallball"],
+    pitches: [
+      { name: "투심", rating: 85, type: "fastball" },
+      { name: "체인지업", rating: 82, type: "offspeed" },
+      { name: "커브", rating: 76, type: "breaking" },
+    ],
+  },
+  {
+    name: "이재현",
+    role: "셋업맨",
+    handedness: "우완",
+    stuff: 84,
+    control: 73,
+    stamina: 61,
+    trait: "빠른 슬라이더로 우타자의 배트 중심을 피하는 불펜 투수입니다.",
+    counterOptions: ["aggressive", "power"],
+    pitches: [
+      { name: "슬라이더", rating: 88, type: "breaking" },
+      { name: "직구", rating: 85, type: "fastball" },
+      { name: "포크볼", rating: 78, type: "offspeed" },
+    ],
+  },
+  {
+    name: "박준서",
+    role: "마무리",
+    handedness: "좌완",
+    stuff: 89,
+    control: 75,
+    stamina: 55,
+    trait: "150km대 직구와 포크볼 조합으로 삼진을 노리는 마무리입니다.",
+    counterOptions: ["aggressive", "power", "pinch"],
+    pitches: [
+      { name: "직구", rating: 93, type: "fastball" },
+      { name: "포크볼", rating: 88, type: "breaking" },
+      { name: "슬라이더", rating: 80, type: "breaking" },
+    ],
+  },
+];
+
+const OPPONENT_PITCHER = OPPONENT_PITCHERS[0];
 
 const OPPONENTS = ["레드폭스", "화이트울브스", "그린자이언츠", "골든호크스"];
 
@@ -126,7 +206,7 @@ const MOMENTS = [
     leverage: "SCORING CHANCE",
     options: [
       { id: "pinch", label: "대타 투입", description: "벤치의 강민재를 기용해 컨택 능력을 높입니다.", tag: "카드 사용" },
-      { id: "fly", label: "희생플라이", description: "외야로 공을 보내 최소 한 점을 확실하게 노립니다.", tag: "최소 1점" },
+      { id: "contact", label: "컨택 승부", description: "2사에서 짧게 끊어 치며 안타 하나로 주자를 부릅니다.", tag: "정교함" },
       { id: "power", label: "장타 승부", description: "한 번에 경기를 뒤집을 수 있는 타구를 노립니다.", tag: "빅이닝" },
       { id: "patient", label: "볼을 고른다", description: "볼넷까지 열어두고 다음 타자에게 연결합니다.", tag: "인내" },
     ],
@@ -137,8 +217,8 @@ const MOMENTS = [
     role: "defense",
     outs: 0,
     bases: [true, false, true],
-    beforeText: "6회초, 상대 중심타선의 적시타로 다시 한 점 차가 됐습니다.",
-    backgroundRuns: { away: 1, home: 0 },
+    beforeText: "6회는 양 팀 모두 득점 없이 지나갔습니다.",
+    backgroundRuns: { away: 0, home: 0 },
     title: "7회, 선발을 내릴 시간",
     description: "무사 1·3루. 선발의 투구 수가 늘어나고 있습니다. 지금 승부를 걸까요?",
     batterIndex: 3,
@@ -162,7 +242,7 @@ const MOMENTS = [
     title: "8회말, 흐름을 되찾아라",
     description: "1사 1·2루. 한 점이면 동점, 두 점이면 역전입니다. 가장 원하는 공격을 선택하세요.",
     batterIndex: 3,
-    pitcher: OPPONENT_PITCHER,
+    pitcher: OPPONENT_PITCHERS[1],
     leverage: "LATE INNING",
     options: [
       { id: "aggressive", label: "초구 강공", description: "상대 불펜이 올라온 직후 적극적으로 배트를 냅니다.", tag: "빠른 승부" },
@@ -205,6 +285,10 @@ const dom = {
   gamePhase: document.querySelector("#game-phase"),
   inningLabel: document.querySelector("#inning-label"),
   gameCount: document.querySelector("#game-count"),
+  lineAwayRow: document.querySelector("#line-away-row"),
+  lineHomeRow: document.querySelector("#line-home-row"),
+  lineAwayName: document.querySelector("#line-away-name"),
+  lineHomeName: document.querySelector("#line-home-name"),
   momentTitle: document.querySelector("#moment-title"),
   momentDescription: document.querySelector("#moment-description"),
   leverageChip: document.querySelector("#leverage-chip"),
@@ -222,6 +306,8 @@ const dom = {
   pitcherDetail: document.querySelector("#pitcher-detail"),
   pitcherRatingLabel: document.querySelector("#pitcher-rating-label"),
   pitcherRating: document.querySelector("#pitcher-rating"),
+  pitcherTrait: document.querySelector("#pitcher-trait"),
+  pitcherPitches: document.querySelector("#pitcher-pitches"),
   decisionTitle: document.querySelector("#decision-title"),
   decisionNumber: document.querySelector("#decision-number"),
   decisionActions: document.querySelector("#decision-actions"),
@@ -234,6 +320,7 @@ const dom = {
   teamRecord: document.querySelector("#team-record"),
   bullpenValue: document.querySelector("#bullpen-value"),
   bullpenMeter: document.querySelector("#bullpen-meter"),
+  pitcherRoster: document.querySelector("#pitcher-roster"),
   lineupList: document.querySelector("#lineup-list"),
   managerTip: document.querySelector("#manager-tip"),
   finalCard: document.querySelector("#final-card"),
@@ -436,6 +523,7 @@ function resumeSavedGame() {
 
   game = saved;
   game.current = game.eventIndex === MOMENTS.length ? getLateMoment() : MOMENTS[game.eventIndex];
+  ensureGameShape();
   dom.setupScreen.hidden = true;
   dom.gameScreen.hidden = false;
   dom.finalCard.hidden = true;
@@ -445,13 +533,14 @@ function resumeSavedGame() {
   dom.continueButton.hidden = true;
   applyProfileToGame();
   updateRecord();
+  renderPitcherRoster();
   renderLineup();
   renderPlayByPlay();
   renderGame();
   renderDecisionOptions(game.current);
 
   if (game.resolved && game.lastResult) {
-    showDecisionResult(game.lastResult.title, game.lastResult.description);
+    showDecisionResult(game.lastResult.title, game.lastResult.description, game.lastResult);
     dom.decisionActions.querySelectorAll("button").forEach(function (button) {
       button.disabled = true;
     });
@@ -524,6 +613,69 @@ function randomBetween(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
+function initializeLineScore() {
+  [dom.lineAwayRow, dom.lineHomeRow].forEach(function (row) {
+    if (!row || row.querySelector("[data-inning-index]")) return;
+    for (let inning = 0; inning < 9; inning += 1) {
+      const cell = document.createElement("td");
+      cell.dataset.inningIndex = String(inning);
+      cell.textContent = "–";
+      row.appendChild(cell);
+    }
+
+    const runsCell = document.createElement("td");
+    runsCell.className = "line-score-total";
+    runsCell.dataset.lineTotal = "runs";
+    runsCell.textContent = "0";
+    row.appendChild(runsCell);
+
+    const hitsCell = document.createElement("td");
+    hitsCell.dataset.lineTotal = "hits";
+    hitsCell.textContent = "0";
+    row.appendChild(hitsCell);
+  });
+}
+
+function ensureGameShape() {
+  if (!game) return;
+  game.scores = game.scores || { away: 0, home: 0 };
+  game.stats = Object.assign({ homeHits: 0, awayHits: 0, decisions: 0 }, game.stats || {});
+  game.currentPitcherName = game.currentPitcherName || null;
+
+  if (!game.inningScores) {
+    game.inningScores = {
+      away: Array(9).fill(0),
+      home: Array(9).fill(0),
+    };
+
+    const currentInning = game.current && game.current.inning
+      ? game.current.inning
+      : 1;
+    const fallbackIndex = clamp(currentInning - 2, 0, 8);
+    game.inningScores.away[fallbackIndex] = Number(game.scores.away) || 0;
+    game.inningScores.home[fallbackIndex] = Number(game.scores.home) || 0;
+  }
+
+  ["away", "home"].forEach(function (side) {
+    if (!Array.isArray(game.inningScores[side])) {
+      game.inningScores[side] = Array(9).fill(0);
+    }
+    while (game.inningScores[side].length < 9) game.inningScores[side].push(0);
+    game.inningScores[side] = game.inningScores[side].slice(0, 9).map(function (runs) {
+      return Number(runs) || 0;
+    });
+  });
+}
+
+function addRuns(side, runs, inning) {
+  const scored = Math.max(0, Number(runs) || 0);
+  if (!scored) return;
+  ensureGameShape();
+  const inningIndex = clamp((Number(inning) || 1) - 1, 0, 8);
+  game.scores[side] += scored;
+  game.inningScores[side][inningIndex] += scored;
+}
+
 function shadeColor(color, percent) {
   const normalized = color.replace("#", "");
   const number = parseInt(normalized, 16);
@@ -567,6 +719,20 @@ function formatInning(moment) {
   return moment.inning + "회" + (moment.half === "top" ? "초" : "말");
 }
 
+function getMomentDescription(moment) {
+  if (moment.inning === 8 && moment.half === "bottom") {
+    const difference = game.scores.home - game.scores.away;
+    if (difference > 0) {
+      return "1사 1·2루. " + difference + "점 앞선 상황에서 승부를 굳힐 추가점을 노립니다.";
+    }
+    if (difference === 0) {
+      return "1사 1·2루 동점. 안타 하나면 경기 막판의 주도권을 가져올 수 있습니다.";
+    }
+    return "1사 1·2루. " + Math.abs(difference) + "점 뒤진 상황에서 추격 또는 역전을 노립니다.";
+  }
+  return moment.description;
+}
+
 function startGame(event) {
   event.preventDefault();
   profile.teamName = dom.teamNameInput.value.trim() || "블루스톰";
@@ -579,6 +745,7 @@ function startGame(event) {
     opponent: OPPONENTS[randomBetween(0, OPPONENTS.length - 1)],
     eventIndex: 0,
     scores: { away: 0, home: 0 },
+    inningScores: { away: Array(9).fill(0), home: Array(9).fill(0) },
     bases: [false, false, false],
     outs: 0,
     bullpen: 88,
@@ -586,6 +753,7 @@ function startGame(event) {
     resolved: false,
     finished: false,
     lastResult: null,
+    currentPitcherName: null,
     log: [],
     stats: { homeHits: 0, awayHits: 0, decisions: 0 },
   };
@@ -597,6 +765,7 @@ function startGame(event) {
   dom.logStatus.textContent = "LIVE";
   applyProfileToGame();
   updateRecord();
+  renderPitcherRoster();
   renderLineup();
   addLog("경기 시작. 오늘의 상대는 " + game.opponent + "입니다.", "시작");
   prepareNextMoment();
@@ -605,6 +774,7 @@ function startGame(event) {
 function getLateMoment() {
   const homeAhead = game.scores.home > game.scores.away;
   if (homeAhead) {
+    const lead = game.scores.home - game.scores.away;
     return {
       id: "late",
       inning: 9,
@@ -612,12 +782,12 @@ function getLateMoment() {
       role: "defense",
       outs: 2,
       bases: [false, true, false],
-      beforeText: "8회까지 한 점 차 리드. 이제 마지막 세 개의 아웃만 남았습니다.",
+      beforeText: "8회까지 " + lead + "점 차 리드. 이제 마지막 세 개의 아웃만 남았습니다.",
       backgroundRuns: { away: 0, home: 0 },
       title: "9회초, 마지막 아웃",
       description: "2사 2루. 마무리 류시원을 올려 승리를 지킬까요, 아니면 투수를 아낄까요?",
       batterIndex: 2,
-      pitcher: PITCHERS[2],
+      pitcher: PITCHERS[1],
       leverage: "CLOSE THE GAME",
       options: [
         { id: "bullpen", label: "마무리 투입", description: "류시원의 결정구로 마지막 타자를 압박합니다.", tag: "클로저" },
@@ -640,14 +810,14 @@ function getLateMoment() {
     title: "9회말, 마지막 기회",
     description: game.scores.home === game.scores.away
       ? "동점으로 맞은 9회말. 끝내기 주자가 1루에 있습니다."
-      : "한 점 뒤진 9회말. 주자를 홈으로 불러들이면 승부를 뒤집을 수 있습니다.",
+      : (game.scores.away - game.scores.home) + "점 뒤진 9회말. 남은 한 번의 선택으로 추격해야 합니다.",
     batterIndex: 0,
-    pitcher: OPPONENT_PITCHER,
+    pitcher: OPPONENT_PITCHERS[2],
     leverage: "LAST CHANCE",
     options: [
       { id: "aggressive", label: "초구 강공", description: "첫 공부터 장타를 노려 경기를 끝낼 기회를 만듭니다.", tag: "끝내기" },
       { id: "pinch", label: "대타 승부", description: "강민재를 내보내 마지막 공격 카드를 사용합니다.", tag: "마지막 카드" },
-      { id: "smallball", label: "번트 대기", description: "주자를 득점권으로 보내 한 점 승부를 준비합니다.", tag: "동점 우선" },
+      { id: "contact", label: "히트 앤드 런", description: "주자를 먼저 움직여 단타에도 홈까지 노릴 길을 만듭니다.", tag: "연결 플레이" },
       { id: "patient", label: "볼을 고른다", description: "출루를 만들어 다음 타자에게 기회를 넘깁니다.", tag: "연결" },
     ],
   };
@@ -669,6 +839,7 @@ function prepareNextMoment() {
   game.current = blueprint;
   game.resolved = false;
   game.lastResult = null;
+  game.currentPitcherName = null;
   game.bases = blueprint.bases.slice();
   game.outs = blueprint.outs;
   applyBackground(blueprint);
@@ -683,14 +854,16 @@ function prepareNextMoment() {
 
 function applyBackground(blueprint) {
   const runs = blueprint.backgroundRuns;
-  game.scores.away += runs.away;
-  game.scores.home += runs.home;
+  const scoringInning = Math.max(1, blueprint.inning - 1);
+  addRuns("away", runs.away, scoringInning);
+  addRuns("home", runs.home, scoringInning);
   if (runs.away) game.stats.awayHits += 1;
   if (runs.home) game.stats.homeHits += 1;
   addLog(blueprint.beforeText, formatInning(blueprint));
 }
 
 function renderGame() {
+  ensureGameShape();
   const moment = game.current;
   const isOffense = moment.role === "offense";
   const batter = isOffense
@@ -709,11 +882,12 @@ function renderGame() {
   dom.overviewBadge.setAttribute("aria-label", mascot.name + " 마스코트");
   dom.awayScore.textContent = game.scores.away;
   dom.homeScore.textContent = game.scores.home;
+  renderLineScore();
   dom.gamePhase.textContent = isOffense ? "공격" : "수비";
   dom.inningLabel.textContent = formatInning(moment);
   dom.gameCount.textContent = (game.eventIndex + 1) + "번째 승부처";
   dom.momentTitle.textContent = moment.title;
-  dom.momentDescription.textContent = moment.description;
+  dom.momentDescription.textContent = getMomentDescription(moment);
   dom.leverageChip.textContent = moment.leverage;
   dom.situationRole.textContent = isOffense ? "공격" : "수비";
   dom.outCount.textContent = moment.outs + "사";
@@ -722,6 +896,7 @@ function renderGame() {
 
   setPlayerCard(dom.batterAvatar, dom.batterName, dom.batterDetail, dom.batterRatingLabel, dom.batterRating, batter, "batter");
   setPlayerCard(dom.pitcherAvatar, dom.pitcherName, dom.pitcherDetail, dom.pitcherRatingLabel, dom.pitcherRating, pitcher, "pitcher");
+  renderPitcherReport(pitcher);
   renderBases(moment.bases);
   renderBullpen();
   updateRecord();
@@ -729,8 +904,44 @@ function renderGame() {
 }
 
 function getCurrentPitcher(moment) {
-  if (moment.id === "late") return PITCHERS[2];
+  if (game && game.currentPitcherName) {
+    const selectedPitcher = PITCHERS.find(function (pitcher) {
+      return pitcher.name === game.currentPitcherName;
+    });
+    if (selectedPitcher) return selectedPitcher;
+  }
   return moment.pitcher || PITCHERS[0];
+}
+
+function renderLineScore() {
+  if (!game || !game.current) return;
+  ensureGameShape();
+  dom.lineAwayName.textContent = game.opponent;
+  dom.lineHomeName.textContent = profile.teamName;
+
+  [[dom.lineAwayRow, "away"], [dom.lineHomeRow, "home"]].forEach(function (entry) {
+    const row = entry[0];
+    const side = entry[1];
+    row.querySelectorAll("[data-inning-index]").forEach(function (cell) {
+      const inningIndex = Number(cell.dataset.inningIndex);
+      const inning = inningIndex + 1;
+      const isAway = side === "away";
+      const hasStarted = isAway
+        ? inning <= game.current.inning
+        : inning < game.current.inning || (inning === game.current.inning && game.current.half === "bottom");
+      const didNotBat = game.finished && side === "home" && inning === 9 &&
+        game.current.half === "top" && game.scores.home > game.scores.away;
+
+      cell.textContent = didNotBat ? "X" : hasStarted ? game.inningScores[side][inningIndex] : "–";
+      cell.classList.toggle("is-future", !hasStarted && !didNotBat);
+      cell.classList.toggle("is-current", hasStarted && inning === game.current.inning);
+    });
+
+    row.querySelector('[data-line-total="runs"]').textContent = game.scores[side];
+    row.querySelector('[data-line-total="hits"]').textContent = side === "away"
+      ? game.stats.awayHits
+      : game.stats.homeHits;
+  });
 }
 
 function getCount(moment) {
@@ -755,6 +966,22 @@ function setPlayerCard(avatar, name, detail, ratingLabel, rating, player, type) 
   }
 }
 
+function renderPitcherReport(pitcher) {
+  dom.pitcherTrait.textContent = pitcher.trait || "구종 조합으로 타자의 타이밍을 빼앗습니다.";
+  dom.pitcherPitches.innerHTML = "";
+  (pitcher.pitches || []).forEach(function (pitch) {
+    const item = document.createElement("span");
+    item.className = "pitch-chip" + (pitch.rating >= 87 ? " is-elite" : "");
+    const name = document.createElement("b");
+    name.textContent = pitch.name;
+    const rating = document.createElement("em");
+    rating.textContent = pitch.rating;
+    item.appendChild(name);
+    item.appendChild(rating);
+    dom.pitcherPitches.appendChild(item);
+  });
+}
+
 function renderBases(bases) {
   document.querySelectorAll("[data-base]").forEach(function (base) {
     const index = Number(base.dataset.base);
@@ -768,6 +995,88 @@ function baseSummary(bases) {
     return bases[index];
   });
   return occupied.length ? occupied.join(" · ") : "주자 없음";
+}
+
+function getBestPitch(pitcher) {
+  const pitches = pitcher && Array.isArray(pitcher.pitches) ? pitcher.pitches : [];
+  return pitches.reduce(function (best, pitch) {
+    return !best || pitch.rating > best.rating ? pitch : best;
+  }, null);
+}
+
+function getPitchRating(pitcher, types) {
+  const pitches = pitcher && Array.isArray(pitcher.pitches) ? pitcher.pitches : [];
+  const matches = pitches.filter(function (pitch) {
+    return types.indexOf(pitch.type) >= 0;
+  });
+  return matches.length
+    ? Math.max.apply(null, matches.map(function (pitch) { return pitch.rating; }))
+    : pitcher.stuff;
+}
+
+function getDefensePitcher(moment, optionId) {
+  if (optionId === "bullpen") return moment.inning >= 8 ? PITCHERS[2] : PITCHERS[1];
+  return moment.pitcher || PITCHERS[0];
+}
+
+function estimateOffenseChance(optionId, moment) {
+  const batter = optionId === "pinch" ? BENCH[0] : PLAYER_LINEUP[moment.batterIndex];
+  const pitcher = moment.pitcher || OPPONENT_PITCHER;
+  const contact = batter.contact || 65;
+  const power = batter.power || 55;
+  const speed = batter.speed || 62;
+  let chance = 40;
+
+  if (optionId === "aggressive" || optionId === "power") {
+    chance = 27 + power * 0.34 + contact * 0.1 - pitcher.stuff * 0.22;
+  } else if (optionId === "smallball") {
+    chance = 40 + contact * 0.16 + speed * 0.08 - pitcher.control * 0.18;
+    if (moment.bases[2]) chance += 5;
+  } else if (optionId === "contact" || optionId === "fly") {
+    chance = 33 + contact * 0.24 + power * 0.05 - pitcher.stuff * 0.16;
+    if (moment.outs === 2) chance += 4;
+  } else if (optionId === "patient") {
+    chance = 31 + contact * 0.16 + (100 - pitcher.control) * 0.28;
+    if (pitcher.control < 74) chance += 4;
+  } else if (optionId === "steal") {
+    chance = 26 + speed * 0.37 - pitcher.control * 0.12;
+    if (moment.bases.filter(Boolean).length > 1) chance += 4;
+  } else if (optionId === "pinch") {
+    chance = 36 + contact * 0.2 + power * 0.06 - pitcher.stuff * 0.18;
+  }
+
+  if (Array.isArray(pitcher.counterOptions) && pitcher.counterOptions.indexOf(optionId) >= 0) {
+    chance -= 6;
+  }
+  return clamp(Math.round(chance), 26, 58);
+}
+
+function estimateDefenseChance(optionId, moment) {
+  const batter = OPPONENT_BATTERS[moment.batterIndex % OPPONENT_BATTERS.length];
+  const pitcher = getDefensePitcher(moment, optionId);
+  let chance = 25 + pitcher.stuff * 0.24 + pitcher.control * 0.16 -
+    batter.contact * 0.1 - batter.power * 0.07;
+
+  if (optionId === "attack") {
+    chance += 2 + (getPitchRating(pitcher, ["fastball"]) - 78) * 0.25;
+  } else if (optionId === "breaking") {
+    chance += 2 + (getPitchRating(pitcher, ["breaking", "offspeed"]) - 78) * 0.28;
+  } else if (optionId === "bullpen") {
+    chance += 8;
+    if (game.bullpen < 60) chance -= (60 - game.bullpen) * 0.18;
+  } else if (optionId === "hold") {
+    chance += (pitcher.stamina - 75) * 0.12 - (moment.inning >= 7 ? 7 : 2);
+  } else if (optionId === "walk") {
+    chance = 32 + pitcher.control * 0.08 - batter.power * 0.03;
+  }
+
+  return clamp(Math.round(chance), 24, 60);
+}
+
+function estimateDecisionChance(moment, optionId) {
+  return moment.role === "offense"
+    ? estimateOffenseChance(optionId, moment)
+    : estimateDefenseChance(optionId, moment);
 }
 
 function renderDecisionOptions(moment) {
@@ -784,10 +1093,12 @@ function renderDecisionOptions(moment) {
     button.dataset.optionId = option.id;
     const isPinchDisabled = option.id === "pinch" && game.usedPinchHit;
     const isBullpenDisabled = option.id === "bullpen" && game.bullpen < 30;
+    const chance = estimateDecisionChance(moment, option.id);
     button.disabled = isPinchDisabled || isBullpenDisabled;
     button.innerHTML =
       "<strong>" + option.label + (isPinchDisabled ? " (사용 완료)" : "") + "</strong>" +
       "<span>" + option.description + "</span>" +
+      "<small class=\"decision-odds\">예상 성공률 " + chance + "%</small>" +
       "<small class=\"decision-tag\">" + option.tag + "</small>";
     button.addEventListener("click", function () {
       resolveDecision(option.id);
@@ -803,6 +1114,8 @@ function resolveDecision(optionId) {
     return candidate.id === optionId;
   });
   if (!option) return;
+  if (optionId === "pinch" && game.usedPinchHit) return;
+  if (optionId === "bullpen" && game.bullpen < 30) return;
 
   game.resolved = true;
   game.stats.decisions += 1;
@@ -815,7 +1128,7 @@ function resolveDecision(optionId) {
     : resolveDefense(optionId, moment);
   game.lastResult = result;
   addLog(result.log, formatInning(moment), true);
-  showDecisionResult(result.title, result.description);
+  showDecisionResult(result.title, result.description, result);
   renderGame();
   dom.continueButton.hidden = false;
   dom.continueButton.textContent = game.eventIndex === MOMENTS.length
@@ -825,156 +1138,145 @@ function resolveDecision(optionId) {
 }
 
 function resolveOffense(optionId, moment) {
-  const batter = PLAYER_LINEUP[moment.batterIndex];
-  const contact = batter.contact / 100;
-  const power = batter.power / 100;
-  let chance = 0.4;
+  const batter = optionId === "pinch" ? BENCH[0] : PLAYER_LINEUP[moment.batterIndex];
+  const pitcher = moment.pitcher || OPPONENT_PITCHER;
+  const bestPitch = getBestPitch(pitcher);
+  const chance = estimateOffenseChance(optionId, moment);
+  const success = Math.random() * 100 < chance;
+  const occupiedRunners = moment.bases.filter(Boolean).length;
   let runs = 0;
-  let scores = false;
-  let title = "공격이 막혔습니다";
-  let description = "상대 투수가 위기에서 낮은 공을 던졌고, 타구가 야수 정면으로 향했습니다.";
-  let log = batter.name + "의 타구가 수비 정면으로 향합니다.";
+  let hit = false;
+  let title = "작전 실패";
+  let description = pitcher.name + "의 " + (bestPitch ? bestPitch.name : "결정구") + "를 이겨내지 못했습니다.";
+  let log = batter.name + "이(가) 득점 없이 물러납니다.";
 
-  if (optionId === "aggressive" || optionId === "power") {
-    chance = 0.28 + power * 0.34 + contact * 0.1;
-    if (Math.random() < chance) {
-      scores = true;
-      runs = Math.random() < 0.24 + power * 0.2 ? 2 : 1;
-      title = runs > 1 ? "장타 폭발!" : "적시타 성공!";
-      description = batter.name + "이(가) 빠른 공을 정확히 받아쳤습니다. " + runs + "명의 주자가 홈을 밟습니다.";
-      log = batter.name + "의 " + (runs > 1 ? "2루타" : "적시타") + "! " + runs + "점이 들어옵니다.";
-    } else {
-      title = Math.random() < 0.5 ? "헛스윙 삼진" : "빗맞은 타구";
-      description = "공격적으로 노렸지만 상대 투수의 결정구를 이겨내지 못했습니다.";
-      log = batter.name + ", 공격적인 승부 끝에 득점 없이 물러납니다.";
-    }
-  } else if (optionId === "smallball" || optionId === "fly") {
-    chance = 0.51 + contact * 0.17;
-    if (Math.random() < chance) {
-      scores = true;
-      runs = 1;
-      title = "작전 성공";
-      description = "주자를 안전하게 진루시키는 타구가 나왔고, 3루 주자가 홈을 밟습니다.";
-      log = batter.name + "의 작전 수행. 1점으로 흐름을 이어갑니다.";
-    } else {
-      title = "한 점이 아쉽습니다";
-      description = "주자는 움직였지만 수비가 빠르게 처리하며 홈을 내주지 않았습니다.";
-      log = batter.name + "의 작전 타구, 수비가 먼저 잡아냅니다.";
-    }
-  } else if (optionId === "patient") {
-    chance = 0.42 + contact * 0.19;
-    if (Math.random() < chance) {
-      scores = true;
-      runs = 1;
-      title = "기다린 보람";
-      description = "볼을 골라낸 끝에 가운데로 몰린 공을 놓치지 않았습니다.";
-      log = batter.name + "이(가) 출루를 만들고 1점이 들어옵니다.";
-    } else {
-      title = "승부가 길어졌습니다";
-      description = "볼을 기다렸지만 카운트가 불리해졌고, 결국 범타로 끝났습니다.";
-      log = batter.name + ", 긴 승부 끝에 범타로 물러납니다.";
-    }
-  } else if (optionId === "steal") {
-    chance = 0.43 + (batter.speed || 65) / 100 * 0.27;
-    if (Math.random() < chance) {
-      scores = true;
-      runs = moment.bases[2] ? 1 : 0;
-      title = "대담한 주루";
-      description = runs
-        ? "더블 스틸이 완벽하게 맞아떨어지며 3루 주자가 홈을 훔칩니다."
-        : "주자들이 한 베이스씩 진루하며 득점권을 만들었습니다.";
-      log = runs
-        ? "더블 스틸 성공! 홈까지 파고들어 1점이 들어옵니다."
-        : "더블 스틸 성공. 주자들이 한 베이스씩 진루합니다.";
-    } else {
-      title = "주루사가 나왔습니다";
-      description = "상대 포수가 정확하게 송구했고, 흐름이 끊겼습니다.";
-      log = "도루 시도 실패. 포수가 주자를 잡아냅니다.";
-    }
-  } else if (optionId === "pinch") {
-    game.usedPinchHit = true;
-    const pinch = BENCH[0];
-    chance = 0.52 + pinch.contact / 100 * 0.2;
-    if (Math.random() < chance) {
-      scores = true;
-      runs = Math.random() < 0.25 ? 2 : 1;
-      title = "대타 카드 적중!";
-      description = pinch.name + "이(가) 벤치에서 나와 " + runs + "타점 타구를 만들었습니다.";
-      log = "대타 " + pinch.name + "의 적시타! " + runs + "점이 들어옵니다.";
-    } else {
+  if (optionId === "pinch") game.usedPinchHit = true;
+
+  if (success && (optionId === "aggressive" || optionId === "power")) {
+    hit = true;
+    const extraBaseHit = Math.random() < 0.2 + (batter.power || 60) / 250;
+    runs = extraBaseHit ? Math.min(2, Math.max(1, occupiedRunners)) : 1;
+    title = extraBaseHit ? "장타 폭발!" : "적시타 성공!";
+    description = batter.name + "이(가) 빠른 공을 받아쳐 " + runs + "점을 만들었습니다.";
+    log = batter.name + "의 " + (extraBaseHit ? "장타" : "적시타") + ". " + runs + "점이 들어옵니다.";
+  } else if (success && optionId === "smallball") {
+    runs = moment.bases[2] ? 1 : 0;
+    title = runs ? "작전 야구 성공" : "진루 작전 성공";
+    description = runs
+      ? "정확한 번트로 3루 주자가 홈을 밟았습니다."
+      : "타자는 아웃됐지만 주자를 다음 베이스로 보냈습니다.";
+    log = runs ? "번트 작전 성공. 1점이 들어옵니다." : "번트 성공. 주자가 한 베이스 진루합니다.";
+  } else if (success && (optionId === "contact" || optionId === "fly")) {
+    hit = true;
+    runs = moment.bases[1] || moment.bases[2] ? 1 : Math.random() < 0.28 ? 1 : 0;
+    title = "컨택 승부 성공";
+    description = runs
+      ? batter.name + "이(가) 수비 사이로 타구를 보내 1점을 불렀습니다."
+      : batter.name + "이(가) 짧은 안타로 공격을 이어갑니다.";
+    log = runs ? batter.name + "의 적시타. 1점이 들어옵니다." : batter.name + "의 안타로 기회가 이어집니다.";
+  } else if (success && optionId === "patient") {
+    hit = Math.random() < 0.34;
+    runs = moment.bases.every(Boolean) ? 1 : hit && (moment.bases[1] || moment.bases[2]) ? 1 : 0;
+    title = hit ? "실투를 놓치지 않았습니다" : "볼넷 출루";
+    description = runs
+      ? "긴 승부 끝에 주자 한 명이 홈을 밟았습니다."
+      : "공을 끝까지 골라 다음 타자에게 기회를 연결했습니다.";
+    log = runs ? "긴 승부 끝에 1득점입니다." : batter.name + "이(가) 출루에 성공합니다.";
+  } else if (success && optionId === "steal") {
+    runs = moment.bases[2] ? 1 : 0;
+    title = "대담한 주루 성공";
+    description = runs
+      ? "투수의 큰 동작을 읽고 홈까지 파고들었습니다."
+      : "주자들이 한 베이스씩 진루해 득점권을 만들었습니다.";
+    log = runs ? "더블 스틸 성공. 1점이 들어옵니다." : "도루 성공. 득점권에 주자가 들어갑니다.";
+  } else if (success && optionId === "pinch") {
+    hit = true;
+    runs = Math.random() < 0.3 && occupiedRunners > 1 ? 2 : 1;
+    title = "대타 카드 적중!";
+    description = "대타 " + batter.name + "이(가) " + runs + "타점 타구를 만들었습니다.";
+    log = "대타 " + batter.name + "의 적시타. " + runs + "점이 들어옵니다.";
+  } else if (!success) {
+    if (optionId === "steal") {
+      title = "주루사";
+      description = "상대 배터리가 움직임을 읽었습니다. 송구가 먼저 도착해 주자가 아웃됩니다.";
+      log = "도루 시도 실패. 공격 흐름이 끊깁니다.";
+    } else if (optionId === "smallball") {
+      title = "번트 작전 실패";
+      description = "번트가 뜨면서 선행 주자까지 잡힐 위기에 놓였습니다.";
+      log = batter.name + "의 번트가 수비 정면으로 향합니다.";
+    } else if (optionId === "pinch") {
       title = "대타가 침묵했습니다";
-      description = "상대 투수가 대타 타이밍을 읽고 바깥쪽 승부로 헛스윙을 이끌어냈습니다.";
-      log = "대타 " + pinch.name + ", 아쉽게 삼진으로 물러납니다.";
+      description = pitcher.name + "이(가) 대타 타이밍을 읽고 " + (bestPitch ? bestPitch.name : "결정구") + "로 삼진을 잡았습니다.";
+      log = "대타 " + batter.name + ", 삼진으로 물러납니다.";
+    } else if (optionId === "aggressive" || optionId === "power") {
+      title = Math.random() < 0.55 ? "헛스윙 삼진" : "병살성 타구";
+      description = "큰 타구를 노렸지만 " + (bestPitch ? bestPitch.name : "결정구") + "의 움직임을 따라가지 못했습니다.";
+      log = batter.name + ", 공격적인 승부 끝에 득점 없이 물러납니다.";
+    } else {
+      title = "타이밍을 빼앗겼습니다";
+      log = batter.name + "의 타구가 야수 정면으로 향합니다.";
     }
   }
 
-  if (scores) {
-    game.scores.home += runs;
-    game.stats.homeHits += 1;
-  }
-  return { title: title, description: description, log: log };
+  addRuns("home", runs, moment.inning);
+  if (hit) game.stats.homeHits += 1;
+  return { title: title, description: description, log: log, success: success, chance: chance };
 }
 
 function resolveDefense(optionId, moment) {
   const batter = OPPONENT_BATTERS[moment.batterIndex % OPPONENT_BATTERS.length];
-  const pitcher = optionId === "bullpen"
-    ? (moment.inning >= 8 ? PITCHERS[2] : PITCHERS[1])
-    : getCurrentPitcher(moment);
-  let outChance = 0.4 + pitcher.stuff / 100 * 0.18;
-  let runChance = 0.42;
-  let title = "위기를 넘겼습니다";
-  let description = "내야 수비가 침착하게 타구를 처리하며 주자를 묶어뒀습니다.";
-  let log = pitcher.name + "이(가) 위기에서 범타를 유도합니다.";
+  const pitcher = getDefensePitcher(moment, optionId);
+  const bestPitch = getBestPitch(pitcher);
+  const chance = estimateDefenseChance(optionId, moment);
+  const success = Math.random() * 100 < chance;
+  let runs = 0;
+  let title;
+  let description;
+  let log;
 
-  if (optionId === "attack") {
-    outChance += 0.06;
-    runChance -= 0.08;
-  } else if (optionId === "breaking") {
-    outChance += 0.13;
-    runChance += 0.04;
-  } else if (optionId === "walk") {
-    outChance += 0.16;
-    runChance += 0.15;
-  } else if (optionId === "bullpen") {
-    game.bullpen = clamp(game.bullpen - 16, 0, 100);
-    outChance += 0.14;
-    runChance -= 0.1;
-  } else if (optionId === "hold") {
-    outChance -= 0.03;
-    runChance += 0.06;
-  }
+  game.currentPitcherName = pitcher.name;
+  if (optionId === "bullpen") game.bullpen = clamp(game.bullpen - 18, 0, 100);
 
-  if (optionId === "walk" && Math.random() < 0.42) {
-    game.scores.away += 1;
-    game.stats.awayHits += 1;
-    title = "밀어내기 실점";
-    description = "만루 작전이 완성되기 전에 스트라이크를 잡지 못했고, 밀어내기 볼넷이 나왔습니다.";
-    log = batter.name + "에게 고의사구. 이어진 타석에서 밀어내기 1실점입니다.";
-  } else if (Math.random() < outChance) {
-    title = optionId === "bullpen" ? "불펜 투입 성공" : "수비 성공";
-    description = optionId === "bullpen"
-      ? pitcher.name + "이(가) 올라오자마자 결정구로 헛스윙을 끌어냈습니다."
-      : pitcher.name + "이(가) 낮은 공으로 타자의 타이밍을 빼앗았습니다.";
-    log = pitcher.name + "의 위기 탈출. " + batter.name + "이(가) 범타로 물러납니다.";
-  } else if (Math.random() < runChance) {
-    const runs = moment.bases[2] ? 1 : Math.random() < 0.25 ? 2 : 1;
-    game.scores.away += runs;
-    game.stats.awayHits += 1;
-    title = "상대 적시타";
-    description = batter.name + "이(가) 끈질긴 승부 끝에 타점을 만들었습니다.";
-    log = batter.name + "의 적시타. " + runs + "점이 들어옵니다.";
+  if (success) {
+    title = optionId === "bullpen" ? "불펜 투입 성공" : optionId === "walk" ? "만루 작전 성공" : "위기 탈출";
+    description = optionId === "walk"
+      ? "승부를 피한 뒤 다음 타자를 병살타로 처리했습니다."
+      : pitcher.name + "이(가) " + (bestPitch ? bestPitch.name : "결정구") + "로 " + batter.name + "의 타이밍을 빼앗았습니다.";
+    log = pitcher.name + "의 위기 탈출. 득점을 허용하지 않습니다.";
   } else {
-    title = "주자를 묶었습니다";
-    description = "안타성 타구였지만 외야 수비가 빠르게 처리해 추가 진루를 막았습니다.";
-    log = batter.name + "의 타구를 수비가 처리합니다. 추가 실점은 없습니다.";
+    const multiRun = (batter.power >= 85 || optionId === "walk") && Math.random() < 0.32;
+    runs = multiRun ? 2 : 1;
+    title = optionId === "walk" ? "만루 작전 실패" : optionId === "bullpen" ? "교체 카드가 빗나갔습니다" : "상대 적시타";
+    description = batter.name + "이(가) " + (bestPitch ? bestPitch.name : "결정구") + "를 받아쳐 " + runs + "점을 만들었습니다.";
+    log = batter.name + "의 적시타. 상대가 " + runs + "점을 추가합니다.";
+    addRuns("away", runs, moment.inning);
+    game.stats.awayHits += 1;
   }
 
-  return { title: title, description: description, log: log };
+  return { title: title, description: description, log: log, success: success, chance: chance };
 }
 
-function showDecisionResult(title, description) {
+function showDecisionResult(title, description, outcome) {
   dom.decisionResult.hidden = false;
-  dom.decisionResult.innerHTML = "<strong>" + title + "</strong><span>" + description + "</span>";
+  dom.decisionResult.innerHTML = "";
+  dom.decisionResult.classList.toggle("is-success", Boolean(outcome && outcome.success));
+  dom.decisionResult.classList.toggle("is-failure", Boolean(outcome && outcome.success === false));
+
+  const heading = document.createElement("div");
+  heading.className = "decision-result-heading";
+  const resultTitle = document.createElement("strong");
+  resultTitle.textContent = title;
+  heading.appendChild(resultTitle);
+  if (outcome && Number.isFinite(outcome.chance)) {
+    const badge = document.createElement("small");
+    badge.textContent = (outcome.success ? "성공" : "실패") + " · 예상 " + outcome.chance + "%";
+    heading.appendChild(badge);
+  }
+
+  const resultDescription = document.createElement("span");
+  resultDescription.textContent = description;
+  dom.decisionResult.appendChild(heading);
+  dom.decisionResult.appendChild(resultDescription);
 }
 
 function proceedToNext() {
@@ -1006,6 +1308,7 @@ function finishGame() {
 
   saveProfile();
   updateRecord();
+  renderLineScore();
   dom.finalTitle.textContent = resultTitle;
   dom.finalDescription.textContent = resultDescription;
   dom.finalAwayName.textContent = game.opponent;
@@ -1020,6 +1323,38 @@ function finishGame() {
   addLog("경기 종료. 최종 스코어 " + game.opponent + " " + away + " : " + home + " " + profile.teamName, "종료", true);
   clearSavedGame();
   updateResumeCard();
+}
+
+function renderPitcherRoster() {
+  dom.pitcherRoster.innerHTML = "";
+  PITCHERS.forEach(function (pitcher) {
+    const item = document.createElement("li");
+    const top = document.createElement("div");
+    top.className = "pitcher-roster-top";
+    const identity = document.createElement("div");
+    const name = document.createElement("strong");
+    name.textContent = pitcher.name;
+    const role = document.createElement("span");
+    role.textContent = pitcher.role + " · " + pitcher.handedness;
+    identity.appendChild(name);
+    identity.appendChild(role);
+
+    const arsenal = document.createElement("div");
+    arsenal.className = "pitcher-roster-arsenal";
+    pitcher.pitches.slice(0, 2).forEach(function (pitch) {
+      const chip = document.createElement("b");
+      chip.textContent = pitch.name + " " + pitch.rating;
+      arsenal.appendChild(chip);
+    });
+    top.appendChild(identity);
+    top.appendChild(arsenal);
+
+    const trait = document.createElement("p");
+    trait.textContent = pitcher.trait;
+    item.appendChild(top);
+    item.appendChild(trait);
+    dom.pitcherRoster.appendChild(item);
+  });
 }
 
 function renderLineup() {
@@ -1090,6 +1425,7 @@ dom.mascotOptions.addEventListener("click", function (event) {
   if (button) selectMascot(button.dataset.mascot);
 });
 
+initializeLineScore();
 renderMascotOptions();
 if (session) {
   showAuthenticatedApp();

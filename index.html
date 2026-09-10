@@ -245,6 +245,45 @@
             </div>
           </section>
 
+          <section class="line-score-card" aria-label="1회부터 9회까지 이닝별 점수">
+            <div class="line-score-heading">
+              <div>
+                <p class="eyebrow">LINE SCORE</p>
+                <strong>이닝별 점수</strong>
+              </div>
+              <span>R 득점 · H 안타</span>
+            </div>
+            <div class="line-score-scroll">
+              <table class="line-score-table">
+                <caption>1회부터 9회까지 양 팀의 이닝별 점수와 총 득점, 안타 수</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">TEAM</th>
+                    <th scope="col">1</th>
+                    <th scope="col">2</th>
+                    <th scope="col">3</th>
+                    <th scope="col">4</th>
+                    <th scope="col">5</th>
+                    <th scope="col">6</th>
+                    <th scope="col">7</th>
+                    <th scope="col">8</th>
+                    <th scope="col">9</th>
+                    <th scope="col" class="line-score-total">R</th>
+                    <th scope="col">H</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr id="line-away-row">
+                    <th id="line-away-name" scope="row">레드폭스</th>
+                  </tr>
+                  <tr id="line-home-row">
+                    <th id="line-home-name" scope="row">블루스톰</th>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
           <div class="game-layout">
             <div class="main-column">
               <section class="moment-card">
@@ -319,6 +358,14 @@
                   </article>
                 </div>
 
+                <div class="pitcher-report" aria-label="현재 투수의 구종과 특징">
+                  <div class="pitcher-report-copy">
+                    <span>투수 리포트</span>
+                    <strong id="pitcher-trait">결정구 정보를 불러오는 중</strong>
+                  </div>
+                  <div id="pitcher-pitches" class="pitcher-pitches"></div>
+                </div>
+
                 <div class="decision-heading">
                   <div>
                     <p class="eyebrow">MANAGER'S CALL</p>
@@ -365,6 +412,17 @@
                   </div>
                   <div class="meter"><span id="bullpen-meter"></span></div>
                 </div>
+              </section>
+
+              <section class="side-card pitcher-roster-card">
+                <div class="section-heading compact">
+                  <div>
+                    <p class="eyebrow">PITCHING STAFF</p>
+                    <h2>투수진 리포트</h2>
+                  </div>
+                  <span class="lineup-count">3명</span>
+                </div>
+                <ul id="pitcher-roster" class="pitcher-roster"></ul>
               </section>
 
               <section class="side-card lineup-card">
