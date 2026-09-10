@@ -1,0 +1,476 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="승부처 - 중요한 순간만 감독하는 텍스트 야구 시뮬레이션"
+    />
+    <title>승부처 | Baseball Manager</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Gowun+Dodum&family=Outfit:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="#" aria-label="승부처 홈">
+          <span class="brand-mark">⚾</span>
+          <span>
+            <span class="eyebrow">BASEBALL MANAGER</span>
+            <strong>승부처</strong>
+          </span>
+        </a>
+        <div class="topbar-meta">
+          <span class="live-dot"></span>
+          <span id="save-status">새 구단을 만들어보세요</span>
+          <button id="logout-button" class="topbar-account-button" type="button" hidden>로그아웃</button>
+        </div>
+      </header>
+
+      <main>
+        <section id="auth-screen" class="screen auth-screen">
+          <div class="auth-card">
+            <div class="auth-copy">
+              <p class="eyebrow">WELCOME, MANAGER</p>
+              <h1>감독님, 누구신가요?</h1>
+              <p>
+                닉네임과 비밀번호를 입력하면 내 구단과 진행 중인 경기를 이어서
+                플레이할 수 있습니다.
+              </p>
+            </div>
+            <form id="auth-form" class="auth-form">
+              <label class="field-label" for="auth-nickname">
+                닉네임
+                <input
+                  id="auth-nickname"
+                  type="text"
+                  maxlength="16"
+                  autocomplete="username"
+                  placeholder="예: 최선배"
+                  required
+                />
+              </label>
+              <label class="field-label" for="auth-password">
+                비밀번호
+                <input
+                  id="auth-password"
+                  type="password"
+                  minlength="4"
+                  maxlength="64"
+                  autocomplete="current-password"
+                  placeholder="4자 이상"
+                  required
+                />
+              </label>
+              <p id="auth-error" class="auth-error" role="alert" hidden></p>
+              <button class="primary-button" type="submit">
+                접속하기
+                <span aria-hidden="true">→</span>
+              </button>
+              <p class="auth-note">
+                처음 입력한 닉네임과 비밀번호로 계정이 만들어집니다. 이후 같은 정보로
+                접속하면 다른 기기에서도 구단과 진행 중인 경기를 이어갈 수 있습니다.
+              </p>
+            </form>
+          </div>
+        </section>
+
+        <section id="setup-screen" class="screen" hidden>
+          <div class="hero-card">
+            <div class="hero-copy">
+              <p class="eyebrow">TEXT-BASED BASEBALL SIM</p>
+              <h1>한 경기의 모든 공 대신,<br /><em>승부처만 잡아라.</em></h1>
+              <p class="hero-description">
+                평범한 이닝은 자동으로 흘러갑니다. 득점권, 투수 교체,
+                마지막 기회처럼 결과를 바꿀 수 있는 순간에만 감독의 선택이
+                필요합니다.
+              </p>
+              <div class="hero-stats" aria-label="게임 특징">
+                <div>
+                  <strong>9</strong>
+                  <span>이닝</span>
+                </div>
+                <div>
+                  <strong>6</strong>
+                  <span>승부처</span>
+                </div>
+                <div>
+                  <strong>1</strong>
+                  <span>감독</span>
+                </div>
+              </div>
+            </div>
+
+            <form id="team-form" class="setup-form">
+              <div class="form-heading">
+                <span class="step-number">01</span>
+                <div>
+                  <p class="eyebrow">CREATE YOUR CLUB</p>
+                  <h2>나만의 구단 만들기</h2>
+                </div>
+              </div>
+
+              <label class="field-label" for="team-name">
+                구단 이름
+                <input
+                  id="team-name"
+                  name="teamName"
+                  type="text"
+                  maxlength="12"
+                  value="블루스톰"
+                  placeholder="예: 최강야구단, 우리집팀"
+                  autocomplete="off"
+                  required
+                />
+                <span class="field-hint">색상과 마스코트는 팀 이름과 별도로 정합니다.</span>
+              </label>
+
+              <label class="field-label" for="team-color">
+                구단 컬러
+                <span class="color-input-wrap">
+                  <input id="team-color" name="teamColor" type="color" value="#f0445e" />
+                  <span id="color-value">#F0445E</span>
+                </span>
+              </label>
+
+              <div class="mascot-field">
+                <div class="mascot-field-heading">
+                  <span class="field-label-title">마스코트 동물</span>
+                  <span class="field-hint">12종 중 선택</span>
+                </div>
+                <div
+                  id="mascot-options"
+                  class="mascot-options"
+                  role="group"
+                  aria-label="마스코트 동물 선택"
+                ></div>
+              </div>
+
+              <div class="team-preview" aria-live="polite">
+                <span id="setup-mascot-preview" class="team-preview-mascot">🦦</span>
+                <span>
+                  <small>내 구단 미리보기</small>
+                  <strong id="setup-team-preview">블루스톰</strong>
+                  <span id="setup-mascot-name" class="team-preview-caption">수달 마스코트</span>
+                </span>
+              </div>
+
+              <button class="primary-button" type="submit">
+                기본 선수단으로 시작
+                <span aria-hidden="true">→</span>
+              </button>
+              <p class="form-hint">
+                선수 구성은 먼저 자동으로 준비됩니다. 경기를 즐긴 뒤 스카우트와
+                시즌 시스템을 확장합니다.
+              </p>
+            </form>
+          </div>
+
+          <section id="resume-game-card" class="resume-card" hidden>
+            <div class="resume-mark" aria-hidden="true">↗</div>
+            <div class="resume-copy">
+              <p class="eyebrow">CONTINUE SAVED GAME</p>
+              <h2 id="resume-game-label">저장된 경기가 있습니다.</h2>
+              <p>마지막으로 플레이하던 승부처부터 이어서 진행합니다.</p>
+            </div>
+            <button id="resume-button" class="primary-button" type="button">
+              이어하기 <span aria-hidden="true">→</span>
+            </button>
+          </section>
+
+          <div class="rules-strip">
+            <div class="rule-item">
+              <span class="rule-icon">01</span>
+              <div>
+                <strong>자동 진행</strong>
+                <p>평범한 타석은 빠르게 지나갑니다.</p>
+              </div>
+            </div>
+            <div class="rule-item">
+              <span class="rule-icon">02</span>
+              <div>
+                <strong>승부처 선택</strong>
+                <p>강공, 작전, 대타, 투수 교체를 지시합니다.</p>
+              </div>
+            </div>
+            <div class="rule-item">
+              <span class="rule-icon">03</span>
+              <div>
+                <strong>기록과 저장</strong>
+                <p>경기 결과와 구단 전적은 서버에 자동 저장됩니다.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="game-screen" class="screen" hidden>
+          <div class="game-topline">
+            <div>
+              <p class="eyebrow">EXHIBITION GAME · 001</p>
+              <h1 id="game-title">오늘의 승부</h1>
+            </div>
+            <button id="new-game-button" class="ghost-button" type="button">
+              구단 다시 만들기
+            </button>
+          </div>
+
+          <section class="scoreboard-card" aria-label="현재 점수">
+            <div class="score-team away-team">
+              <span class="team-badge opponent-badge" id="away-badge">R</span>
+              <div>
+                <span class="team-label">AWAY</span>
+                <strong id="away-team-name">레드폭스</strong>
+              </div>
+              <b id="away-score">0</b>
+            </div>
+            <div class="inning-status">
+              <span id="game-phase">수비</span>
+              <strong id="inning-label">1회초</strong>
+              <span id="game-count">승부처 준비 중</span>
+            </div>
+            <div class="score-team home-team">
+              <b id="home-score">0</b>
+              <div>
+                <span class="team-label">HOME</span>
+                <strong id="home-team-name">블루스톰</strong>
+              </div>
+              <span class="team-badge home-badge" id="home-badge" aria-label="수달 마스코트">🦦</span>
+            </div>
+          </section>
+
+          <section class="line-score-card" aria-label="1회부터 9회까지 이닝별 점수">
+            <div class="line-score-heading">
+              <div>
+                <p class="eyebrow">LINE SCORE</p>
+                <strong>이닝별 점수</strong>
+              </div>
+              <span>R 득점 · H 안타</span>
+            </div>
+            <div class="line-score-scroll">
+              <table class="line-score-table">
+                <caption>1회부터 9회까지 양 팀의 이닝별 점수와 총 득점, 안타 수</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">TEAM</th>
+                    <th scope="col">1</th>
+                    <th scope="col">2</th>
+                    <th scope="col">3</th>
+                    <th scope="col">4</th>
+                    <th scope="col">5</th>
+                    <th scope="col">6</th>
+                    <th scope="col">7</th>
+                    <th scope="col">8</th>
+                    <th scope="col">9</th>
+                    <th scope="col" class="line-score-total">R</th>
+                    <th scope="col">H</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr id="line-away-row">
+                    <th id="line-away-name" scope="row">레드폭스</th>
+                  </tr>
+                  <tr id="line-home-row">
+                    <th id="line-home-name" scope="row">블루스톰</th>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <div class="game-layout">
+            <div class="main-column">
+              <section class="moment-card">
+                <div class="moment-heading">
+                  <div>
+                    <p class="eyebrow">LIVE MOMENT</p>
+                    <h2 id="moment-title">승부처를 불러오는 중</h2>
+                  </div>
+                  <span class="leverage-chip" id="leverage-chip">HIGH LEVERAGE</span>
+                </div>
+
+                <div class="situation-grid">
+                  <div class="situation-panel">
+                    <div class="panel-label-row">
+                      <span>상황</span>
+                      <span id="situation-role" class="role-label">수비</span>
+                    </div>
+                    <p id="moment-description" class="moment-description"></p>
+                    <div class="count-row" aria-label="아웃과 카운트">
+                      <span class="count-block">
+                        <small>OUT</small>
+                        <strong id="out-count">1</strong>
+                      </span>
+                      <span class="count-block">
+                        <small>COUNT</small>
+                        <strong id="pitch-count">0 - 0</strong>
+                      </span>
+                    </div>
+                  </div>
+
+                  <div class="base-panel">
+                    <div class="panel-label-row">
+                      <span>주자 상황</span>
+                      <span id="base-summary">주자 없음</span>
+                    </div>
+                    <div class="base-diamond" aria-label="베이스 상황">
+                      <span class="base base-second" data-base="1">2B</span>
+                      <span class="base base-third" data-base="2">3B</span>
+                      <span class="base base-first" data-base="0">1B</span>
+                      <span class="base home-plate">H</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="matchup-grid">
+                  <article class="player-matchup" id="batter-card">
+                    <div class="player-role">타석</div>
+                    <div class="player-avatar batter-avatar" id="batter-avatar">김</div>
+                    <div class="player-info">
+                      <strong id="batter-name">김태윤</strong>
+                      <span id="batter-detail">3번 · 1루수 · 우타</span>
+                    </div>
+                    <div class="player-rating">
+                      <small id="batter-rating-label">장타력</small>
+                      <strong id="batter-rating">82</strong>
+                    </div>
+                  </article>
+
+                  <span class="versus">VS</span>
+
+                  <article class="player-matchup">
+                    <div class="player-role">마운드</div>
+                    <div class="player-avatar pitcher-avatar" id="pitcher-avatar">한</div>
+                    <div class="player-info">
+                      <strong id="pitcher-name">한도윤</strong>
+                      <span id="pitcher-detail">우완 · 셋업맨</span>
+                    </div>
+                    <div class="player-rating">
+                      <small id="pitcher-rating-label">구위</small>
+                      <strong id="pitcher-rating">78</strong>
+                    </div>
+                  </article>
+                </div>
+
+                <div class="pitcher-report" aria-label="현재 투수의 구종과 특징">
+                  <div class="pitcher-report-copy">
+                    <span>투수 리포트</span>
+                    <strong id="pitcher-trait">결정구 정보를 불러오는 중</strong>
+                  </div>
+                  <div id="pitcher-pitches" class="pitcher-pitches"></div>
+                </div>
+
+                <div class="decision-heading">
+                  <div>
+                    <p class="eyebrow">MANAGER'S CALL</p>
+                    <h3 id="decision-title">어떤 작전을 선택하시겠습니까?</h3>
+                  </div>
+                  <span id="decision-number">01 / 06</span>
+                </div>
+                <div id="decision-actions" class="decision-actions"></div>
+                <div id="decision-result" class="decision-result" hidden></div>
+                <button id="continue-button" class="continue-button" type="button" hidden>
+                  다음 승부처로 <span aria-hidden="true">→</span>
+                </button>
+              </section>
+
+              <section class="log-card">
+                <div class="section-heading">
+                  <div>
+                    <p class="eyebrow">PLAY-BY-PLAY</p>
+                    <h2>문자 중계</h2>
+                  </div>
+                  <span id="log-status">LIVE</span>
+                </div>
+                <div id="play-by-play" class="play-by-play" aria-live="polite"></div>
+              </section>
+            </div>
+
+            <aside class="side-column">
+              <section class="side-card team-overview-card">
+                <div class="section-heading compact">
+                  <div>
+                    <p class="eyebrow">YOUR CLUB</p>
+                    <h2 id="overview-team-name">블루스톰</h2>
+                  </div>
+                  <span class="team-mini-badge" id="overview-badge" aria-label="수달 마스코트">🦦</span>
+                </div>
+                <div class="record-line">
+                  <span>시범 경기 전적</span>
+                  <strong id="team-record">0승 0패 0무</strong>
+                </div>
+                <div class="team-metric">
+                  <div class="metric-label">
+                    <span>불펜 체력</span>
+                    <strong id="bullpen-value">88%</strong>
+                  </div>
+                  <div class="meter"><span id="bullpen-meter"></span></div>
+                </div>
+              </section>
+
+              <section class="side-card pitcher-roster-card">
+                <div class="section-heading compact">
+                  <div>
+                    <p class="eyebrow">PITCHING STAFF</p>
+                    <h2>투수진 리포트</h2>
+                  </div>
+                  <span class="lineup-count">3명</span>
+                </div>
+                <ul id="pitcher-roster" class="pitcher-roster"></ul>
+              </section>
+
+              <section class="side-card lineup-card">
+                <div class="section-heading compact">
+                  <div>
+                    <p class="eyebrow">STARTING LINEUP</p>
+                    <h2>오늘의 라인업</h2>
+                  </div>
+                  <span class="lineup-count">9명</span>
+                </div>
+                <ol id="lineup-list" class="lineup-list"></ol>
+              </section>
+
+              <section class="tip-card">
+                <span class="tip-mark">!</span>
+                <div>
+                  <strong>감독 팁</strong>
+                  <p id="manager-tip">
+                    모든 선택에는 성공 확률과 대가가 있습니다. 좋은 선택보다
+                    상황에 맞는 선택을 찾아보세요.
+                  </p>
+                </div>
+              </section>
+            </aside>
+          </div>
+
+          <section id="final-card" class="final-card" hidden>
+            <div>
+              <p class="eyebrow">FINAL SCORE</p>
+              <h2 id="final-title">경기 종료</h2>
+              <p id="final-description"></p>
+            </div>
+            <div class="final-score">
+              <span id="final-away-name">레드폭스</span>
+              <strong><b id="final-away-score">0</b> : <b id="final-home-score">0</b></strong>
+              <span id="final-home-name">블루스톰</span>
+            </div>
+            <button id="play-again-button" class="primary-button" type="button">
+              다시 경기하기 <span aria-hidden="true">↗</span>
+            </button>
+          </section>
+        </section>
+      </main>
+
+      <footer class="footer">
+        <span>승부처 · Baseball Manager Prototype</span>
+        <span>Fictional teams & players</span>
+      </footer>
+    </div>
+  </body>
+</html>
