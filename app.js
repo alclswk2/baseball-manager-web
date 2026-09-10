@@ -297,8 +297,9 @@ const dom = {
   momentDescription: document.querySelector("#moment-description"),
   leverageChip: document.querySelector("#leverage-chip"),
   situationRole: document.querySelector("#situation-role"),
-  outCount: document.querySelector("#out-count"),
-  pitchCount: document.querySelector("#pitch-count"),
+  sboBalls: document.querySelector("#sbo-balls"),
+  sboStrikes: document.querySelector("#sbo-strikes"),
+  sboOuts: document.querySelector("#sbo-outs"),
   baseSummary: document.querySelector("#base-summary"),
   batterAvatar: document.querySelector("#batter-avatar"),
   batterName: document.querySelector("#batter-name"),
@@ -315,6 +316,14 @@ const dom = {
   decisionTitle: document.querySelector("#decision-title"),
   decisionNumber: document.querySelector("#decision-number"),
   decisionActions: document.querySelector("#decision-actions"),
+  decisionChallenge: document.querySelector("#decision-challenge"),
+  challengeTitle: document.querySelector("#challenge-title"),
+  challengeBonusLabel: document.querySelector("#challenge-bonus-label"),
+  challengeInstruction: document.querySelector("#challenge-instruction"),
+  challengeStage: document.querySelector("#challenge-stage"),
+  challengeStartButton: document.querySelector("#challenge-start-button"),
+  challengeSkipButton: document.querySelector("#challenge-skip-button"),
+  challengeFeedback: document.querySelector("#challenge-feedback"),
   decisionResult: document.querySelector("#decision-result"),
   continueButton: document.querySelector("#continue-button"),
   playByPlay: document.querySelector("#play-by-play"),
@@ -343,6 +352,9 @@ let game = null;
 let serverReady = false;
 let saveTimer = null;
 let serverSaveChain = Promise.resolve();
+let activeChallenge = null;
+let challengeInterval = null;
+let challengeTimeout = null;
 
 function normalizeNickname(nickname) {
   return nickname.trim().toLocaleLowerCase("ko-KR");
@@ -656,6 +668,7 @@ function showAuthenticatedApp() {
 }
 
 function showLoggedOutApp(prefillNickname) {
+  hideDecisionChallenge();
   dom.authScreen.hidden = false;
   dom.setupScreen.hidden = true;
   dom.gameScreen.hidden = true;
@@ -685,6 +698,7 @@ function resumeSavedGame() {
     return;
   }
 
+  hideDecisionChallenge();
   game = saved;
   game.current = game.eventIndex === MOMENTS.length ? getLateMoment() : MOMENTS[game.eventIndex];
   ensureGameShape();
@@ -904,13 +918,13 @@ function applyProfileToSetup() {
 
 function applyProfileToGame() {
   const mascot = getMascot(profile.mascot);
-  dom.homeTeamName.textContent = profile.teamName;
+  dom.homeTeamName.textContent = getManagedTeamName();
   dom.overviewTeamName.textContent = profile.teamName;
   dom.homeBadge.textContent = mascot.emoji;
   dom.homeBadge.setAttribute("aria-label", mascot.name + " 마스코트");
   dom.overviewBadge.textContent = mascot.emoji;
   dom.overviewBadge.setAttribute("aria-label", mascot.name + " 마스코트");
-  dom.finalHomeName.textContent = profile.teamName;
+  dom.finalHomeName.textContent = getManagedTeamName();
   setAccent(profile.color);
   dom.saveStatus.textContent = (session ? session.nickname + " · " : "") + "서버 자동 저장 · " + profile.teamName;
 }
@@ -1028,6 +1042,7 @@ function getLateMoment() {
 }
 
 function prepareNextMoment() {
+  hideDecisionChallenge();
   if (!game || game.finished) {
     return;
   }
@@ -1077,7 +1092,7 @@ function renderGame() {
 
   dom.awayTeamName.textContent = game.opponent;
   dom.awayBadge.textContent = initials(game.opponent);
-  dom.homeTeamName.textContent = profile.teamName;
+  dom.homeTeamName.textContent = getManagedTeamName();
   const mascot = getMascot(profile.mascot);
   dom.homeBadge.textContent = mascot.emoji;
   dom.homeBadge.setAttribute("aria-label", mascot.name + " 마스코트");
@@ -1094,8 +1109,7 @@ function renderGame() {
   dom.momentDescription.textContent = getMomentDescription(moment);
   dom.leverageChip.textContent = moment.leverage;
   dom.situationRole.textContent = isOffense ? "공격" : "수비";
-  dom.outCount.textContent = moment.outs + "사";
-  dom.pitchCount.textContent = getCount(moment);
+  renderSbo(moment);
   dom.baseSummary.textContent = baseSummary(moment.bases);
 
   setPlayerCard(dom.batterAvatar, dom.batterName, dom.batterDetail, dom.batterRatingLabel, dom.batterRating, batter, "batter");
@@ -1121,7 +1135,7 @@ function renderLineScore() {
   if (!game || !game.current) return;
   ensureGameShape();
   dom.lineAwayName.textContent = game.opponent;
-  dom.lineHomeName.textContent = profile.teamName;
+  dom.lineHomeName.textContent = getManagedTeamName();
 
   [[dom.lineAwayRow, "away"], [dom.lineHomeRow, "home"]].forEach(function (entry) {
     const row = entry[0];
@@ -1148,10 +1162,29 @@ function renderLineScore() {
   });
 }
 
-function getCount(moment) {
-  if (moment.outs === 0) return "1 - 1";
-  if (moment.outs === 1) return "2 - 1";
-  return "1 - 2";
+function getManagedTeamName() {
+  return profile.teamName + (session && session.nickname ? " · " + session.nickname + " 감독" : "");
+}
+
+function getCountState(moment) {
+  if (moment.outs === 0) return { balls: 1, strikes: 1, outs: 0 };
+  if (moment.outs === 1) return { balls: 2, strikes: 1, outs: 1 };
+  return { balls: 1, strikes: 2, outs: 2 };
+}
+
+function setSboLights(container, count, label) {
+  if (!container) return;
+  container.querySelectorAll("i").forEach(function (light, index) {
+    light.classList.toggle("is-on", index < count);
+  });
+  container.setAttribute("aria-label", label + " " + count + "개");
+}
+
+function renderSbo(moment) {
+  const count = getCountState(moment);
+  setSboLights(dom.sboBalls, count.balls, "볼");
+  setSboLights(dom.sboStrikes, count.strikes, "스트라이크");
+  setSboLights(dom.sboOuts, count.outs, "아웃");
 }
 
 function setPlayerCard(avatar, name, detail, ratingLabel, rating, player, type) {
@@ -1283,7 +1316,264 @@ function estimateDecisionChance(moment, optionId) {
     : estimateDefenseChance(optionId, moment);
 }
 
+function challengeBonusForChance(chance) {
+  if (chance <= 30) return 4;
+  if (chance <= 38) return 3;
+  if (chance <= 48) return 2;
+  return 1;
+}
+
+function challengeDifficultyForChance(chance) {
+  return clamp(Math.ceil((62 - chance) / 7), 1, 5);
+}
+
+function getChallengePitchOptions(moment, optionId) {
+  const pitcher = moment.role === "offense"
+    ? (moment.pitcher || OPPONENT_PITCHER)
+    : getDefensePitcher(moment, optionId);
+  const fallback = ["직구", "슬라이더", "포크볼"];
+  const names = (pitcher.pitches || []).map(function (pitch) {
+    return pitch.name;
+  }).concat(fallback);
+  return names.filter(function (name, index, list) {
+    return list.indexOf(name) === index;
+  }).slice(0, 3);
+}
+
+function stopChallengeTimers() {
+  if (challengeInterval !== null) {
+    window.clearInterval(challengeInterval);
+    challengeInterval = null;
+  }
+  if (challengeTimeout !== null) {
+    window.clearTimeout(challengeTimeout);
+    challengeTimeout = null;
+  }
+}
+
+function hideDecisionChallenge() {
+  stopChallengeTimers();
+  activeChallenge = null;
+  dom.decisionChallenge.hidden = true;
+  dom.challengeStage.innerHTML = "";
+  dom.challengeFeedback.textContent = "";
+  dom.challengeFeedback.className = "challenge-feedback";
+  dom.challengeStartButton.hidden = false;
+  dom.challengeStartButton.disabled = false;
+  dom.challengeSkipButton.disabled = false;
+}
+
+function openDecisionChallenge(optionId) {
+  if (!game || game.resolved || activeChallenge) return;
+  const moment = game.current;
+  const option = moment.options.find(function (candidate) {
+    return candidate.id === optionId;
+  });
+  if (!option) return;
+  if (optionId === "pinch" && game.usedPinchHit) return;
+  if (optionId === "bullpen" && game.bullpen < 30) return;
+
+  const baseChance = estimateDecisionChance(moment, optionId);
+  const bonus = challengeBonusForChance(baseChance);
+  const difficulty = challengeDifficultyForChance(baseChance);
+  activeChallenge = {
+    optionId: optionId,
+    optionLabel: option.label,
+    role: moment.role,
+    baseChance: baseChance,
+    bonus: bonus,
+    difficulty: difficulty,
+    started: false,
+    finished: false,
+  };
+
+  dom.decisionActions.querySelectorAll("button").forEach(function (button) {
+    button.disabled = true;
+  });
+  dom.decisionChallenge.hidden = false;
+  dom.challengeTitle.textContent = moment.role === "offense" ? "타격 타이밍" : "포수 사인 기억";
+  dom.challengeBonusLabel.textContent = "성공 시 +" + bonus + "%p";
+  dom.challengeInstruction.textContent = moment.role === "offense"
+    ? "시작 후 흰 마커가 초록 구역에 들어올 때 ‘타격!’을 누르세요."
+    : "잠깐 공개되는 구종 순서를 기억한 뒤 같은 순서로 누르세요.";
+  dom.challengeStartButton.textContent = "도전 시작";
+  dom.challengeStartButton.hidden = false;
+  dom.challengeStartButton.disabled = false;
+  dom.challengeSkipButton.textContent = "미니게임 없이 실행";
+  dom.challengeSkipButton.disabled = false;
+  dom.challengeFeedback.textContent = "난이도 " + difficulty + " / 5 · " + option.label;
+  dom.challengeFeedback.className = "challenge-feedback";
+
+  if (moment.role === "offense") {
+    const preview = document.createElement("div");
+    preview.className = "challenge-ready";
+    preview.textContent = "타이밍 게이지 준비";
+    dom.challengeStage.replaceChildren(preview);
+  } else {
+    const preview = document.createElement("div");
+    preview.className = "challenge-ready";
+    preview.textContent = "사인 순서 준비";
+    dom.challengeStage.replaceChildren(preview);
+  }
+  if (typeof dom.decisionChallenge.scrollIntoView === "function") {
+    dom.decisionChallenge.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+}
+
+function startDecisionChallenge() {
+  if (!activeChallenge || activeChallenge.started || activeChallenge.finished) return;
+  activeChallenge.started = true;
+  dom.challengeFeedback.textContent = "";
+  if (activeChallenge.role === "offense") {
+    startTimingChallenge();
+  } else {
+    startMemoryChallenge();
+  }
+}
+
+function startTimingChallenge() {
+  if (!activeChallenge) return;
+  const targetWidth = clamp(36 - activeChallenge.difficulty * 4, 16, 32);
+  const targetLeft = Math.round(12 + Math.random() * (76 - targetWidth));
+  const meter = document.createElement("div");
+  const zone = document.createElement("span");
+  const marker = document.createElement("span");
+  meter.className = "challenge-meter";
+  meter.setAttribute("role", "img");
+  meter.setAttribute("aria-label", "움직이는 타격 타이밍 게이지");
+  zone.className = "challenge-target";
+  marker.className = "challenge-marker";
+  zone.style.left = targetLeft + "%";
+  zone.style.width = targetWidth + "%";
+  marker.style.left = "0%";
+  meter.appendChild(zone);
+  meter.appendChild(marker);
+  dom.challengeStage.replaceChildren(meter);
+
+  activeChallenge.targetLeft = targetLeft;
+  activeChallenge.targetWidth = targetWidth;
+  activeChallenge.markerPosition = 0;
+  activeChallenge.markerDirection = 1;
+  dom.challengeStartButton.textContent = "타격!";
+
+  const step = 1.15 + activeChallenge.difficulty * 0.25;
+  challengeInterval = window.setInterval(function () {
+    if (!activeChallenge || activeChallenge.finished) return;
+    activeChallenge.markerPosition += step * activeChallenge.markerDirection;
+    if (activeChallenge.markerPosition >= 98) {
+      activeChallenge.markerPosition = 98;
+      activeChallenge.markerDirection = -1;
+    } else if (activeChallenge.markerPosition <= 0) {
+      activeChallenge.markerPosition = 0;
+      activeChallenge.markerDirection = 1;
+    }
+    marker.style.left = activeChallenge.markerPosition + "%";
+  }, 30);
+
+  challengeTimeout = window.setTimeout(function () {
+    finishDecisionChallenge(false, "타이밍을 놓쳤습니다.");
+  }, 6500);
+}
+
+function completeTimingChallenge() {
+  if (!activeChallenge || activeChallenge.role !== "offense" || !activeChallenge.started) return;
+  const markerCenter = activeChallenge.markerPosition + 1;
+  const success = markerCenter >= activeChallenge.targetLeft &&
+    markerCenter <= activeChallenge.targetLeft + activeChallenge.targetWidth;
+  finishDecisionChallenge(success, success ? "정확한 타이밍!" : "타이밍이 벗어났습니다.");
+}
+
+function startMemoryChallenge() {
+  if (!activeChallenge || !game) return;
+  const choices = getChallengePitchOptions(game.current, activeChallenge.optionId);
+  const sequenceLength = clamp(2 + Math.ceil(activeChallenge.difficulty / 2), 3, 5);
+  const sequence = Array.from({ length: sequenceLength }, function () {
+    return choices[randomBetween(0, choices.length - 1)];
+  });
+  activeChallenge.choices = choices;
+  activeChallenge.sequence = sequence;
+  activeChallenge.input = [];
+
+  const preview = document.createElement("div");
+  preview.className = "challenge-memory-preview";
+  sequence.forEach(function (pitch, index) {
+    const card = document.createElement("span");
+    card.textContent = (index + 1) + ". " + pitch;
+    preview.appendChild(card);
+  });
+  dom.challengeStage.replaceChildren(preview);
+  dom.challengeStartButton.hidden = true;
+  dom.challengeFeedback.textContent = "순서를 기억하세요";
+
+  const previewDuration = clamp(1050 - activeChallenge.difficulty * 90, 600, 960);
+  challengeTimeout = window.setTimeout(function () {
+    challengeTimeout = null;
+    renderMemoryInput();
+  }, previewDuration);
+}
+
+function renderMemoryInput() {
+  if (!activeChallenge || activeChallenge.role !== "defense" || activeChallenge.finished) return;
+  const wrap = document.createElement("div");
+  wrap.className = "challenge-memory-input";
+  activeChallenge.choices.forEach(function (pitch) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "challenge-pitch-button";
+    button.textContent = pitch;
+    button.addEventListener("click", function () {
+      handleMemoryChoice(pitch);
+    });
+    wrap.appendChild(button);
+  });
+  dom.challengeStage.replaceChildren(wrap);
+  dom.challengeFeedback.textContent = "입력 0 / " + activeChallenge.sequence.length;
+  challengeTimeout = window.setTimeout(function () {
+    finishDecisionChallenge(false, "사인 입력 시간이 끝났습니다.");
+  }, 10000);
+}
+
+function handleMemoryChoice(pitch) {
+  if (!activeChallenge || activeChallenge.finished || !activeChallenge.sequence) return;
+  const index = activeChallenge.input.length;
+  if (pitch !== activeChallenge.sequence[index]) {
+    finishDecisionChallenge(false, "구종 순서가 달랐습니다.");
+    return;
+  }
+  activeChallenge.input.push(pitch);
+  dom.challengeFeedback.textContent = "입력 " + activeChallenge.input.length + " / " + activeChallenge.sequence.length;
+  if (activeChallenge.input.length === activeChallenge.sequence.length) {
+    finishDecisionChallenge(true, "사인이 정확합니다!");
+  }
+}
+
+function finishDecisionChallenge(success, message) {
+  if (!activeChallenge || activeChallenge.finished) return;
+  stopChallengeTimers();
+  activeChallenge.finished = true;
+  const completed = {
+    optionId: activeChallenge.optionId,
+    bonus: activeChallenge.bonus,
+    success: Boolean(success),
+  };
+  dom.challengeStage.querySelectorAll("button").forEach(function (button) {
+    button.disabled = true;
+  });
+  dom.challengeStartButton.disabled = true;
+  dom.challengeSkipButton.disabled = true;
+  dom.challengeFeedback.textContent = message + (success ? " 성공률 +" + completed.bonus + "%p" : " 기본 확률로 진행합니다.");
+  dom.challengeFeedback.className = "challenge-feedback " + (success ? "is-success" : "is-failure");
+  challengeTimeout = window.setTimeout(function () {
+    hideDecisionChallenge();
+    resolveDecision(completed.optionId, success ? completed.bonus : 0, {
+      attempted: true,
+      success: Boolean(success),
+    });
+  }, 650);
+}
+
 function renderDecisionOptions(moment) {
+  hideDecisionChallenge();
   dom.decisionActions.innerHTML = "";
   dom.decisionNumber.textContent = String(game.eventIndex + 1).padStart(2, "0") + " / 06";
   dom.decisionTitle.textContent = moment.role === "offense"
@@ -1291,6 +1581,8 @@ function renderDecisionOptions(moment) {
     : "어떻게 위기를 막겠습니까?";
 
   moment.options.forEach(function (option) {
+    const wrapper = document.createElement("div");
+    wrapper.className = "decision-option";
     const button = document.createElement("button");
     button.type = "button";
     button.className = "decision-button";
@@ -1305,13 +1597,25 @@ function renderDecisionOptions(moment) {
       "<small class=\"decision-odds\">예상 성공률 " + chance + "%</small>" +
       "<small class=\"decision-tag\">" + option.tag + "</small>";
     button.addEventListener("click", function () {
-      resolveDecision(option.id);
+      resolveDecision(option.id, 0, null);
     });
-    dom.decisionActions.appendChild(button);
+
+    const challengeButton = document.createElement("button");
+    challengeButton.type = "button";
+    challengeButton.className = "challenge-button";
+    challengeButton.disabled = isPinchDisabled || isBullpenDisabled;
+    challengeButton.textContent = "미니게임 · 성공 시 +" + challengeBonusForChance(chance) + "%p";
+    challengeButton.addEventListener("click", function () {
+      openDecisionChallenge(option.id);
+    });
+
+    wrapper.appendChild(button);
+    wrapper.appendChild(challengeButton);
+    dom.decisionActions.appendChild(wrapper);
   });
 }
 
-function resolveDecision(optionId) {
+function resolveDecision(optionId, challengeBonus, challengeResult) {
   if (!game || game.resolved) return;
   const moment = game.current;
   const option = moment.options.find(function (candidate) {
@@ -1321,6 +1625,9 @@ function resolveDecision(optionId) {
   if (optionId === "pinch" && game.usedPinchHit) return;
   if (optionId === "bullpen" && game.bullpen < 30) return;
 
+  hideDecisionChallenge();
+  const appliedBonus = clamp(Number(challengeBonus) || 0, 0, 4);
+
   game.resolved = true;
   game.stats.decisions += 1;
   dom.decisionActions.querySelectorAll("button").forEach(function (button) {
@@ -1328,8 +1635,13 @@ function resolveDecision(optionId) {
   });
 
   const result = moment.role === "offense"
-    ? resolveOffense(optionId, moment)
-    : resolveDefense(optionId, moment);
+    ? resolveOffense(optionId, moment, appliedBonus)
+    : resolveDefense(optionId, moment, appliedBonus);
+  if (challengeResult && challengeResult.attempted) {
+    result.challengeAttempted = true;
+    result.challengeSuccess = Boolean(challengeResult.success);
+    result.challengeBonus = challengeResult.success ? appliedBonus : 0;
+  }
   game.lastResult = result;
   addLog(result.log, formatInning(moment), true);
   showDecisionResult(result.title, result.description, result);
@@ -1341,11 +1653,12 @@ function resolveDecision(optionId) {
   saveGameState();
 }
 
-function resolveOffense(optionId, moment) {
+function resolveOffense(optionId, moment, challengeBonus) {
   const batter = optionId === "pinch" ? BENCH[0] : PLAYER_LINEUP[moment.batterIndex];
   const pitcher = moment.pitcher || OPPONENT_PITCHER;
   const bestPitch = getBestPitch(pitcher);
-  const chance = estimateOffenseChance(optionId, moment);
+  const baseChance = estimateOffenseChance(optionId, moment);
+  const chance = clamp(baseChance + (Number(challengeBonus) || 0), 0, 95);
   const success = Math.random() * 100 < chance;
   const occupiedRunners = moment.bases.filter(Boolean).length;
   let runs = 0;
@@ -1424,14 +1737,15 @@ function resolveOffense(optionId, moment) {
 
   addRuns("home", runs, moment.inning);
   if (hit) game.stats.homeHits += 1;
-  return { title: title, description: description, log: log, success: success, chance: chance };
+  return { title: title, description: description, log: log, success: success, chance: chance, baseChance: baseChance };
 }
 
-function resolveDefense(optionId, moment) {
+function resolveDefense(optionId, moment, challengeBonus) {
   const batter = OPPONENT_BATTERS[moment.batterIndex % OPPONENT_BATTERS.length];
   const pitcher = getDefensePitcher(moment, optionId);
   const bestPitch = getBestPitch(pitcher);
-  const chance = estimateDefenseChance(optionId, moment);
+  const baseChance = estimateDefenseChance(optionId, moment);
+  const chance = clamp(baseChance + (Number(challengeBonus) || 0), 0, 95);
   const success = Math.random() * 100 < chance;
   let runs = 0;
   let title;
@@ -1457,7 +1771,7 @@ function resolveDefense(optionId, moment) {
     game.stats.awayHits += 1;
   }
 
-  return { title: title, description: description, log: log, success: success, chance: chance };
+  return { title: title, description: description, log: log, success: success, chance: chance, baseChance: baseChance };
 }
 
 function showDecisionResult(title, description, outcome) {
@@ -1473,7 +1787,13 @@ function showDecisionResult(title, description, outcome) {
   heading.appendChild(resultTitle);
   if (outcome && Number.isFinite(outcome.chance)) {
     const badge = document.createElement("small");
-    badge.textContent = (outcome.success ? "성공" : "실패") + " · 예상 " + outcome.chance + "%";
+    let badgeText = (outcome.success ? "성공" : "실패") + " · 적용 " + outcome.chance + "%";
+    if (outcome.challengeAttempted) {
+      badgeText += outcome.challengeSuccess
+        ? " · 보정 +" + outcome.challengeBonus + "%p"
+        : " · 보정 실패";
+    }
+    badge.textContent = badgeText;
     heading.appendChild(badge);
   }
 
@@ -1491,6 +1811,7 @@ function proceedToNext() {
 
 function finishGame() {
   if (!game || game.finished) return;
+  hideDecisionChallenge();
   game.finished = true;
   game.resolved = true;
   const home = game.scores.home;
@@ -1516,7 +1837,7 @@ function finishGame() {
   dom.finalTitle.textContent = resultTitle;
   dom.finalDescription.textContent = resultDescription;
   dom.finalAwayName.textContent = game.opponent;
-  dom.finalHomeName.textContent = profile.teamName;
+  dom.finalHomeName.textContent = getManagedTeamName();
   dom.finalAwayScore.textContent = away;
   dom.finalHomeScore.textContent = home;
   dom.finalCard.hidden = false;
@@ -1600,6 +1921,7 @@ function renderPlayByPlay() {
 }
 
 function resetToSetup() {
+  hideDecisionChallenge();
   game = null;
   clearSavedGame();
   dom.gameScreen.hidden = true;
@@ -1612,6 +1934,20 @@ function resetToSetup() {
 dom.authForm.addEventListener("submit", handleAuthSubmit);
 dom.teamForm.addEventListener("submit", startGame);
 dom.continueButton.addEventListener("click", proceedToNext);
+dom.challengeStartButton.addEventListener("click", function () {
+  if (!activeChallenge) return;
+  if (!activeChallenge.started) {
+    startDecisionChallenge();
+    return;
+  }
+  if (activeChallenge.role === "offense") completeTimingChallenge();
+});
+dom.challengeSkipButton.addEventListener("click", function () {
+  if (!activeChallenge || !game || game.resolved) return;
+  const optionId = activeChallenge.optionId;
+  hideDecisionChallenge();
+  resolveDecision(optionId, 0, null);
+});
 dom.newGameButton.addEventListener("click", resetToSetup);
 dom.themeToggle.addEventListener("click", function () {
   const nextTheme = document.documentElement.dataset.theme === "dark" ? "light" : "dark";

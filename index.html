@@ -296,22 +296,64 @@
                   <span class="leverage-chip" id="leverage-chip">HIGH LEVERAGE</span>
                 </div>
 
+                <p id="moment-description" class="moment-description"></p>
+
+                <div class="decision-heading">
+                  <div>
+                    <p class="eyebrow">MANAGER'S CALL</p>
+                    <h3 id="decision-title">어떤 작전을 선택하시겠습니까?</h3>
+                  </div>
+                  <span id="decision-number">01 / 06</span>
+                </div>
+                <div id="decision-actions" class="decision-actions"></div>
+
+                <section id="decision-challenge" class="decision-challenge" hidden>
+                  <div class="decision-challenge-heading">
+                    <div>
+                      <p class="eyebrow">OPTIONAL EDGE</p>
+                      <h4 id="challenge-title">승부 보정 도전</h4>
+                    </div>
+                    <strong id="challenge-bonus-label">+0%p</strong>
+                  </div>
+                  <p id="challenge-instruction" class="challenge-instruction"></p>
+                  <div id="challenge-stage" class="challenge-stage"></div>
+                  <div class="challenge-controls">
+                    <button id="challenge-start-button" class="primary-button" type="button">도전 시작</button>
+                    <button id="challenge-skip-button" class="ghost-button" type="button">그냥 실행</button>
+                  </div>
+                  <p id="challenge-feedback" class="challenge-feedback" aria-live="polite"></p>
+                </section>
+
+                <div id="decision-result" class="decision-result" hidden></div>
+                <button id="continue-button" class="continue-button" type="button" hidden>
+                  다음 승부처로 <span aria-hidden="true">→</span>
+                </button>
+
                 <div class="situation-grid">
-                  <div class="situation-panel">
+                  <div class="situation-panel sbo-panel">
                     <div class="panel-label-row">
-                      <span>상황</span>
+                      <span>SBO</span>
                       <span id="situation-role" class="role-label">수비</span>
                     </div>
-                    <p id="moment-description" class="moment-description"></p>
-                    <div class="count-row" aria-label="아웃과 카운트">
-                      <span class="count-block">
-                        <small>OUT</small>
-                        <strong id="out-count">1</strong>
-                      </span>
-                      <span class="count-block">
-                        <small>COUNT</small>
-                        <strong id="pitch-count">0 - 0</strong>
-                      </span>
+                    <div class="sbo-board" aria-label="볼, 스트라이크, 아웃">
+                      <div class="sbo-row">
+                        <strong>B</strong>
+                        <span id="sbo-balls" class="sbo-lights" aria-label="볼 0개">
+                          <i></i><i></i><i></i>
+                        </span>
+                      </div>
+                      <div class="sbo-row">
+                        <strong>S</strong>
+                        <span id="sbo-strikes" class="sbo-lights" aria-label="스트라이크 0개">
+                          <i></i><i></i>
+                        </span>
+                      </div>
+                      <div class="sbo-row">
+                        <strong>O</strong>
+                        <span id="sbo-outs" class="sbo-lights" aria-label="아웃 0개">
+                          <i></i><i></i>
+                        </span>
+                      </div>
                     </div>
                   </div>
 
@@ -321,10 +363,10 @@
                       <span id="base-summary">주자 없음</span>
                     </div>
                     <div class="base-diamond" aria-label="베이스 상황">
-                      <span class="base base-second" data-base="1">2B</span>
-                      <span class="base base-third" data-base="2">3B</span>
-                      <span class="base base-first" data-base="0">1B</span>
-                      <span class="base home-plate">H</span>
+                      <span class="base base-second" data-base="1"><span>2B</span></span>
+                      <span class="base base-third" data-base="2"><span>3B</span></span>
+                      <span class="base base-first" data-base="0"><span>1B</span></span>
+                      <span class="base home-plate"><span>H</span></span>
                     </div>
                   </div>
                 </div>
@@ -366,19 +408,6 @@
                   </div>
                   <div id="pitcher-pitches" class="pitcher-pitches"></div>
                 </div>
-
-                <div class="decision-heading">
-                  <div>
-                    <p class="eyebrow">MANAGER'S CALL</p>
-                    <h3 id="decision-title">어떤 작전을 선택하시겠습니까?</h3>
-                  </div>
-                  <span id="decision-number">01 / 06</span>
-                </div>
-                <div id="decision-actions" class="decision-actions"></div>
-                <div id="decision-result" class="decision-result" hidden></div>
-                <button id="continue-button" class="continue-button" type="button" hidden>
-                  다음 승부처로 <span aria-hidden="true">→</span>
-                </button>
               </section>
 
               <section class="log-card">

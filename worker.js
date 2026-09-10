@@ -267,13 +267,20 @@ function sanitizeProfile(value) {
 
 function sanitizeResult(value) {
   if (!value || typeof value !== "object") return null;
-  return {
+  const result = {
     title: cleanText(value.title, 80),
     description: cleanText(value.description, 500),
     log: cleanText(value.log, 500),
     success: Boolean(value.success),
     chance: clampInteger(value.chance, 0, 100),
+    baseChance: clampInteger(value.baseChance, 0, 100),
   };
+  if (value.challengeAttempted) {
+    result.challengeAttempted = true;
+    result.challengeSuccess = Boolean(value.challengeSuccess);
+    result.challengeBonus = clampInteger(value.challengeBonus, 0, 4);
+  }
+  return result;
 }
 
 function sanitizeLog(value) {
@@ -480,4 +487,3 @@ export class UserStore {
     return json({ ok: true });
   }
 }
-
