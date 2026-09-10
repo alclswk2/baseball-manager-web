@@ -1,0 +1,7 @@
+worker.js
+wrangler.jsonc
+package.json
+tests/
+upload/
+*.zip
+.assetsignore
