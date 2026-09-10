@@ -295,8 +295,8 @@ function sanitizeLog(value) {
 function sanitizeInningScores(value) {
   const source = value && typeof value === "object" ? value : {};
   const sanitizeSide = (side) => {
-    const innings = Array.isArray(source[side]) ? source[side].slice(0, 9) : [];
-    while (innings.length < 9) innings.push(0);
+    const innings = Array.isArray(source[side]) ? source[side].slice(0, 11) : [];
+    while (innings.length < 11) innings.push(0);
     return innings.map((runs) => clampInteger(runs, 0, 20));
   };
   return { away: sanitizeSide("away"), home: sanitizeSide("home") };
@@ -306,9 +306,16 @@ function sanitizeGame(value) {
   if (!value || typeof value !== "object" || value.finished) return null;
   const scores = value.scores && typeof value.scores === "object" ? value.scores : {};
   const stats = value.stats && typeof value.stats === "object" ? value.stats : {};
+  const allowedPhases = new Set([
+    "ninth-bottom",
+    "extra-10-top",
+    "extra-10-bottom",
+    "extra-11-top",
+    "extra-11-bottom",
+  ]);
   return {
     opponent: cleanText(value.opponent, 24, "레드폭스"),
-    eventIndex: clampInteger(value.eventIndex, 0, 5),
+    eventIndex: clampInteger(value.eventIndex, 0, 10),
     scores: {
       away: clampInteger(scores.away, 0, 50),
       home: clampInteger(scores.home, 0, 50),
@@ -322,11 +329,12 @@ function sanitizeGame(value) {
     finished: false,
     lastResult: sanitizeResult(value.lastResult),
     currentPitcherName: value.currentPitcherName ? cleanText(value.currentPitcherName, 24) : null,
+    phase: allowedPhases.has(value.phase) ? value.phase : null,
     log: sanitizeLog(value.log),
     stats: {
       homeHits: clampInteger(stats.homeHits, 0, 100),
       awayHits: clampInteger(stats.awayHits, 0, 100),
-      decisions: clampInteger(stats.decisions, 0, 6),
+      decisions: clampInteger(stats.decisions, 0, 11),
     },
   };
 }

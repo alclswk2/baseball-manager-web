@@ -6,6 +6,7 @@ const PROFILE_KEY_PREFIX = "baseball-manager-profile-v1:";
 const GAME_KEY_PREFIX = "baseball-manager-game-v1:";
 const THEME_KEY = "baseball-manager-theme-v1";
 const SERVER_SAVE_DELAY = 350;
+const MAX_INNINGS = 11;
 
 const PLAYER_LINEUP = [
   { name: "박준혁", position: "중견수", handedness: "좌타", contact: 78, power: 61, speed: 84 },
@@ -254,6 +255,14 @@ const MOMENTS = [
     ],
   },
 ];
+
+const POST_REGULATION_PHASES = new Set([
+  "ninth-bottom",
+  "extra-10-top",
+  "extra-10-bottom",
+  "extra-11-top",
+  "extra-11-bottom",
+]);
 
 const dom = {
   authScreen: document.querySelector("#auth-screen"),
@@ -686,8 +695,16 @@ function updateResumeCard() {
     return;
   }
 
+  const phaseLabels = {
+    "ninth-bottom": "9회말",
+    "extra-10-top": "연장 10회초",
+    "extra-10-bottom": "연장 10회말",
+    "extra-11-top": "연장 11회초",
+    "extra-11-bottom": "연장 11회말",
+  };
   const progress = Math.min(saved.eventIndex + 1, MOMENTS.length + 1);
-  dom.resumeGameLabel.textContent = saved.opponent + "전 · 승부처 " + progress + "/" + (MOMENTS.length + 1);
+  const progressLabel = phaseLabels[saved.phase] || "승부처 " + progress + "/" + (MOMENTS.length + 1);
+  dom.resumeGameLabel.textContent = saved.opponent + "전 · " + progressLabel;
   dom.resumeGameCard.hidden = false;
 }
 
@@ -700,8 +717,8 @@ function resumeSavedGame() {
 
   hideDecisionChallenge();
   game = saved;
-  game.current = game.eventIndex === MOMENTS.length ? getLateMoment() : MOMENTS[game.eventIndex];
   ensureGameShape();
+  game.current = getCurrentMomentBlueprint();
   dom.setupScreen.hidden = true;
   dom.gameScreen.hidden = false;
   dom.finalCard.hidden = true;
@@ -723,9 +740,7 @@ function resumeSavedGame() {
       button.disabled = true;
     });
     dom.continueButton.hidden = false;
-    dom.continueButton.textContent = game.eventIndex === MOMENTS.length
-      ? "경기 결과 보기 →"
-      : "다음 승부처로 →";
+    dom.continueButton.textContent = getAdvanceState().label;
   }
 }
 
@@ -834,7 +849,7 @@ function randomBetween(min, max) {
 function initializeLineScore() {
   [dom.lineAwayRow, dom.lineHomeRow].forEach(function (row) {
     if (!row || row.querySelector("[data-inning-index]")) return;
-    for (let inning = 0; inning < 9; inning += 1) {
+    for (let inning = 0; inning < MAX_INNINGS; inning += 1) {
       const cell = document.createElement("td");
       cell.dataset.inningIndex = String(inning);
       cell.textContent = "–";
@@ -859,27 +874,28 @@ function ensureGameShape() {
   game.scores = game.scores || { away: 0, home: 0 };
   game.stats = Object.assign({ homeHits: 0, awayHits: 0, decisions: 0 }, game.stats || {});
   game.currentPitcherName = game.currentPitcherName || null;
+  game.phase = POST_REGULATION_PHASES.has(game.phase) ? game.phase : null;
 
   if (!game.inningScores) {
     game.inningScores = {
-      away: Array(9).fill(0),
-      home: Array(9).fill(0),
+      away: Array(MAX_INNINGS).fill(0),
+      home: Array(MAX_INNINGS).fill(0),
     };
 
     const currentInning = game.current && game.current.inning
       ? game.current.inning
       : 1;
-    const fallbackIndex = clamp(currentInning - 2, 0, 8);
+    const fallbackIndex = clamp(currentInning - 2, 0, MAX_INNINGS - 1);
     game.inningScores.away[fallbackIndex] = Number(game.scores.away) || 0;
     game.inningScores.home[fallbackIndex] = Number(game.scores.home) || 0;
   }
 
   ["away", "home"].forEach(function (side) {
     if (!Array.isArray(game.inningScores[side])) {
-      game.inningScores[side] = Array(9).fill(0);
+      game.inningScores[side] = Array(MAX_INNINGS).fill(0);
     }
-    while (game.inningScores[side].length < 9) game.inningScores[side].push(0);
-    game.inningScores[side] = game.inningScores[side].slice(0, 9).map(function (runs) {
+    while (game.inningScores[side].length < MAX_INNINGS) game.inningScores[side].push(0);
+    game.inningScores[side] = game.inningScores[side].slice(0, MAX_INNINGS).map(function (runs) {
       return Number(runs) || 0;
     });
   });
@@ -889,7 +905,7 @@ function addRuns(side, runs, inning) {
   const scored = Math.max(0, Number(runs) || 0);
   if (!scored) return;
   ensureGameShape();
-  const inningIndex = clamp((Number(inning) || 1) - 1, 0, 8);
+  const inningIndex = clamp((Number(inning) || 1) - 1, 0, MAX_INNINGS - 1);
   game.scores[side] += scored;
   game.inningScores[side][inningIndex] += scored;
 }
@@ -963,7 +979,7 @@ function startGame(event) {
     opponent: OPPONENTS[randomBetween(0, OPPONENTS.length - 1)],
     eventIndex: 0,
     scores: { away: 0, home: 0 },
-    inningScores: { away: Array(9).fill(0), home: Array(9).fill(0) },
+    inningScores: { away: Array(MAX_INNINGS).fill(0), home: Array(MAX_INNINGS).fill(0) },
     bases: [false, false, false],
     outs: 0,
     bullpen: 88,
@@ -972,6 +988,7 @@ function startGame(event) {
     finished: false,
     lastResult: null,
     currentPitcherName: null,
+    phase: null,
     log: [],
     stats: { homeHits: 0, awayHits: 0, decisions: 0 },
   };
@@ -1041,19 +1058,195 @@ function getLateMoment() {
   };
 }
 
+function getPostRegulationMoment(phase) {
+  const difference = game.scores.away - game.scores.home;
+  const scoreText = difference > 0
+    ? difference + "점 뒤진 상황"
+    : difference < 0
+      ? Math.abs(difference) + "점 앞선 상황"
+      : "동점 상황";
+
+  if (phase === "ninth-bottom") {
+    return {
+      id: phase,
+      inning: 9,
+      half: "bottom",
+      role: "offense",
+      outs: 1,
+      bases: [true, true, false],
+      beforeText: "9회초 수비가 끝났습니다. 홈팀에 마지막 정규이닝 공격 기회가 남았습니다.",
+      backgroundRuns: { away: 0, home: 0 },
+      title: "9회말, 응답할 시간",
+      description: scoreText + ". 득점하지 못하면 경기가 끝납니다.",
+      batterIndex: 3,
+      pitcher: OPPONENT_PITCHERS[2],
+      leverage: "LAST RESPONSE",
+      options: [
+        { id: "aggressive", label: "초구 강공", description: "주자 두 명을 불러들일 장타를 노립니다.", tag: "끝내기" },
+        { id: "contact", label: "컨택 승부", description: "수비 사이를 노려 우선 한 점부터 만듭니다.", tag: "추격" },
+        { id: "power", label: "장타 승부", description: "큰 스윙으로 경기를 한 번에 뒤집습니다.", tag: "고위험" },
+        { id: "patient", label: "볼을 고른다", description: "마무리 투수의 제구 흔들림을 기다립니다.", tag: "선구안" },
+      ],
+    };
+  }
+
+  if (phase === "extra-10-top") {
+    return {
+      id: phase,
+      inning: 10,
+      half: "top",
+      role: "defense",
+      outs: 1,
+      bases: [true, false, true],
+      beforeText: "9회까지 승부를 가리지 못해 연장전에 들어갑니다.",
+      backgroundRuns: { away: 0, home: 0 },
+      title: "연장 10회초, 실점 위기",
+      description: "1사 1·3루. 한 점도 치명적인 연장 승부입니다.",
+      batterIndex: 2,
+      pitcher: PITCHERS[1],
+      leverage: "EXTRA INNING",
+      options: [
+        { id: "bullpen", label: "마무리 투입", description: "류시원에게 연장 첫 위기를 맡깁니다.", tag: "승부수" },
+        { id: "attack", label: "정면 승부", description: "강한 공으로 삼진과 얕은 타구를 노립니다.", tag: "구위" },
+        { id: "breaking", label: "변화구 유도", description: "낮은 변화구로 병살타를 유도합니다.", tag: "병살" },
+        { id: "walk", label: "만루 작전", description: "1루를 채워 홈 승부 가능성을 만듭니다.", tag: "계산" },
+      ],
+    };
+  }
+
+  if (phase === "extra-10-bottom") {
+    return {
+      id: phase,
+      inning: 10,
+      half: "bottom",
+      role: "offense",
+      outs: 1,
+      bases: [true, false, true],
+      beforeText: "10회초 수비를 마치고 홈팀의 공격이 시작됩니다.",
+      backgroundRuns: { away: 0, home: 0 },
+      title: "연장 10회말, 끝내기 기회",
+      description: scoreText + ". 여기서 앞서면 끝내기 승리입니다.",
+      batterIndex: 5,
+      pitcher: OPPONENT_PITCHERS[2],
+      leverage: "WALK-OFF CHANCE",
+      options: [
+        { id: "aggressive", label: "초구 강공", description: "첫 공부터 외야 깊숙한 타구를 노립니다.", tag: "끝내기" },
+        { id: "contact", label: "컨택 승부", description: "3루 주자를 홈으로 부를 타구를 만듭니다.", tag: "정교함" },
+        { id: "smallball", label: "스퀴즈 번트", description: "3루 주자의 스타트에 맞춰 한 점을 짜냅니다.", tag: "한 점" },
+        { id: "patient", label: "볼을 고른다", description: "상대 마무리의 실투를 기다립니다.", tag: "인내" },
+      ],
+    };
+  }
+
+  if (phase === "extra-11-top") {
+    return {
+      id: phase,
+      inning: 11,
+      half: "top",
+      role: "defense",
+      outs: 2,
+      bases: [false, true, false],
+      beforeText: "10회에도 동점이 이어졌습니다. 이제 마지막 연장 이닝입니다.",
+      backgroundRuns: { away: 0, home: 0 },
+      title: "연장 11회초, 마지막 수비",
+      description: "2사 2루. 마지막 공격 기회를 지키기 위한 승부입니다.",
+      batterIndex: 3,
+      pitcher: PITCHERS[2],
+      leverage: "FINAL INNING",
+      options: [
+        { id: "attack", label: "직구 승부", description: "가장 강한 공으로 마지막 아웃을 노립니다.", tag: "정면승부" },
+        { id: "breaking", label: "포크볼 승부", description: "결정구로 헛스윙을 끌어냅니다.", tag: "결정구" },
+        { id: "hold", label: "마무리 신뢰", description: "현재 배터리의 사인을 그대로 믿습니다.", tag: "신뢰" },
+        { id: "walk", label: "고의사구", description: "강타자를 피하고 다음 타자와 승부합니다.", tag: "회피" },
+      ],
+    };
+  }
+
+  if (phase === "extra-11-bottom") {
+    return {
+      id: phase,
+      inning: 11,
+      half: "bottom",
+      role: "offense",
+      outs: 1,
+      bases: [true, true, false],
+      beforeText: "11회초 수비가 끝났습니다. 이 공격이 경기의 마지막입니다.",
+      backgroundRuns: { away: 0, home: 0 },
+      title: "연장 11회말, 최후의 선택",
+      description: scoreText + ". 동점으로 끝나면 경기는 무승부가 됩니다.",
+      batterIndex: 2,
+      pitcher: OPPONENT_PITCHERS[2],
+      leverage: "FINAL CHANCE",
+      options: [
+        { id: "aggressive", label: "초구 강공", description: "마지막 기회에 가장 강한 스윙을 주문합니다.", tag: "승부" },
+        { id: "contact", label: "컨택 승부", description: "주자를 불러들일 정확한 타구를 노립니다.", tag: "연결" },
+        { id: "power", label: "끝내기 장타", description: "장타 한 방으로 승부를 끝냅니다.", tag: "끝내기" },
+        { id: "patient", label: "끝까지 고르기", description: "볼넷과 실투를 모두 열어두고 기다립니다.", tag: "선구안" },
+      ],
+    };
+  }
+
+  return null;
+}
+
+function getCurrentMomentBlueprint() {
+  if (!game) return null;
+  if (game.phase) return getPostRegulationMoment(game.phase);
+  if (game.eventIndex === MOMENTS.length) return getLateMoment();
+  return MOMENTS[game.eventIndex] || null;
+}
+
+function getAdvanceState() {
+  if (!game || !game.current) return { finish: true, phase: null, label: "경기 결과 보기 →" };
+  const tied = game.scores.home === game.scores.away;
+
+  if (game.phase === "ninth-bottom") {
+    return tied
+      ? { finish: false, phase: "extra-10-top", label: "연장 10회초로 →" }
+      : { finish: true, phase: null, label: "경기 결과 보기 →" };
+  }
+  if (game.phase === "extra-10-top") {
+    return { finish: false, phase: "extra-10-bottom", label: "10회말로 →" };
+  }
+  if (game.phase === "extra-10-bottom") {
+    return tied
+      ? { finish: false, phase: "extra-11-top", label: "11회초로 →" }
+      : { finish: true, phase: null, label: "경기 결과 보기 →" };
+  }
+  if (game.phase === "extra-11-top") {
+    return { finish: false, phase: "extra-11-bottom", label: "11회말로 →" };
+  }
+  if (game.phase === "extra-11-bottom") {
+    return { finish: true, phase: null, label: "경기 결과 보기 →" };
+  }
+
+  if (game.eventIndex < MOMENTS.length) {
+    return { finish: false, phase: null, label: "다음 승부처로 →" };
+  }
+  if (game.current.inning === 9 && game.current.half === "top") {
+    return game.scores.home > game.scores.away
+      ? { finish: true, phase: null, label: "경기 결과 보기 →" }
+      : { finish: false, phase: "ninth-bottom", label: "9회말로 →" };
+  }
+  if (game.current.inning === 9 && game.current.half === "bottom") {
+    return tied
+      ? { finish: false, phase: "extra-10-top", label: "연장 10회초로 →" }
+      : { finish: true, phase: null, label: "경기 결과 보기 →" };
+  }
+  return { finish: true, phase: null, label: "경기 결과 보기 →" };
+}
+
 function prepareNextMoment() {
   hideDecisionChallenge();
   if (!game || game.finished) {
     return;
   }
-  if (game.eventIndex > MOMENTS.length) {
+
+  const blueprint = getCurrentMomentBlueprint();
+  if (!blueprint) {
     finishGame();
     return;
   }
-
-  const blueprint = game.eventIndex === MOMENTS.length
-    ? getLateMoment()
-    : MOMENTS[game.eventIndex];
 
   game.current = blueprint;
   game.resolved = false;
@@ -1147,7 +1340,7 @@ function renderLineScore() {
       const hasStarted = isAway
         ? inning <= game.current.inning
         : inning < game.current.inning || (inning === game.current.inning && game.current.half === "bottom");
-      const didNotBat = game.finished && side === "home" && inning === 9 &&
+      const didNotBat = game.finished && side === "home" && inning === game.current.inning &&
         game.current.half === "top" && game.scores.home > game.scores.away;
 
       cell.textContent = didNotBat ? "X" : hasStarted ? game.inningScores[side][inningIndex] : "–";
@@ -1575,7 +1768,9 @@ function finishDecisionChallenge(success, message) {
 function renderDecisionOptions(moment) {
   hideDecisionChallenge();
   dom.decisionActions.innerHTML = "";
-  dom.decisionNumber.textContent = String(game.eventIndex + 1).padStart(2, "0") + " / 06";
+  dom.decisionNumber.textContent = game.phase
+    ? String(game.eventIndex + 1).padStart(2, "0") + " · " + formatInning(moment)
+    : String(game.eventIndex + 1).padStart(2, "0") + " / 06";
   dom.decisionTitle.textContent = moment.role === "offense"
     ? "어떤 공격을 지시하시겠습니까?"
     : "어떻게 위기를 막겠습니까?";
@@ -1647,9 +1842,7 @@ function resolveDecision(optionId, challengeBonus, challengeResult) {
   showDecisionResult(result.title, result.description, result);
   renderGame();
   dom.continueButton.hidden = false;
-  dom.continueButton.textContent = game.eventIndex === MOMENTS.length
-    ? "경기 결과 보기 →"
-    : "다음 승부처로 →";
+  dom.continueButton.textContent = getAdvanceState().label;
   saveGameState();
 }
 
@@ -1805,7 +1998,13 @@ function showDecisionResult(title, description, outcome) {
 
 function proceedToNext() {
   if (!game || !game.resolved) return;
+  const advance = getAdvanceState();
+  if (advance.finish) {
+    finishGame();
+    return;
+  }
   game.eventIndex += 1;
+  game.phase = advance.phase;
   prepareNextMoment();
 }
 
@@ -1817,7 +2016,9 @@ function finishGame() {
   const home = game.scores.home;
   const away = game.scores.away;
   let resultTitle = "무승부";
-  let resultDescription = "9회까지 승부를 가리지 못했습니다. 다음 경기에서 결판을 내보세요.";
+  let resultDescription = game.current && game.current.inning >= 11
+    ? "연장 11회말까지 승부를 가리지 못해 무승부로 끝났습니다."
+    : "정규이닝까지 승부를 가리지 못했습니다.";
 
   if (home > away) {
     profile.wins += 1;

@@ -779,7 +779,7 @@ main {
 
 .line-score-table {
   width: 100%;
-  min-width: 700px;
+  min-width: 790px;
   border-collapse: collapse;
   table-layout: fixed;
   color: #4d5965;
@@ -2087,7 +2087,7 @@ main {
   }
 
   .line-score-table {
-    min-width: 660px;
+    min-width: 760px;
   }
 
   .line-score-table th:first-child {
